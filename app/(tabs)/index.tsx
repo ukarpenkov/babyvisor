@@ -1,19 +1,20 @@
-import { StyleSheet } from 'react-native'
-import {
-    Camera,
-    useCameraDevice,
-    useCameraPermission,
-} from 'react-native-vision-camera'
-
-import { ThemedText } from '../../components/ThemedText'
+import { StyleSheet, Text, View } from 'react-native'
 
 export default function HomeScreen() {
-    const device = useCameraDevice('back')
-    const { hasPermission } = useCameraPermission()
+    // const device = useCameraDevice('back')
+    // const { hasPermission } = useCameraPermission()
 
-    if (!hasPermission) return <ThemedText>No camera device found.</ThemedText>
-    if (device == null) return <ThemedText>No camera device found.</ThemedText>
+    // if (!hasPermission) return <ThemedText>No camera device found.</ThemedText>
+    // if (device == null) return <ThemedText>No camera device found.</ThemedText>
     return (
+        <View>
+            <Text style={styles.aaa}>Hello</Text>
+            <Text style={styles.aaa}>Hello</Text>
+            <Text style={styles.aaa}>Hello</Text>
+            <Text style={styles.aaa}>Hello</Text>
+            <Text style={styles.aaa}>Hello</Text>
+            <Text style={styles.aaa}>Hello43444</Text>
+        </View>
         // <ParallaxScrollView
         //   headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
         //   headerImage={
@@ -23,11 +24,11 @@ export default function HomeScreen() {
         //     />
         //   }
         // >
-        <Camera
-            style={StyleSheet.absoluteFill}
-            device={device}
-            isActive={true}
-        />
+        // <Camera
+        //     style={StyleSheet.absoluteFill}
+        //     device={device}
+        //     isActive={true}
+        // />
         //   <ThemedView style={styles.titleContainer}>
         //     <ThemedText type="title">BabyVisor!</ThemedText>
         //     <HelloWave />
@@ -87,5 +88,8 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         position: 'absolute',
+    },
+    aaa: {
+        marginTop: 100,
     },
 })
