@@ -1,51 +1,38 @@
+import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { Tabs } from 'expo-router'
 import React from 'react'
 
-import { IconSymbol } from '../../components/ui/IconSymbol'
-import { useColorScheme } from '../../hooks/useColorScheme'
-
 export default function TabLayout() {
-    const colorScheme = useColorScheme()
-
     return (
-        <Tabs
-        // screenOptions={{
-        //     tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        //     headerShown: false,
-        //     tabBarButton: HapticTab,
-        //     tabBarBackground: TabBarBackground,
-        //     tabBarStyle: Platform.select({
-        //         ios: {
-        //             // Use a transparent background on iOS to show the blur effect
-        //             position: 'absolute',
-        //         },
-        //         default: {},
-        //     }),
-        // }}
-        >
-            <Tabs.Screen
-                name="index"
-                options={{
-                    title: 'Explore',
-                    tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={28}
-                            name="camera.fill"
-                            color={color}
-                        />
-                    ),
-                }}
-            />
+        <Tabs screenOptions={{ headerShown: false }}>
             <Tabs.Screen
                 name="explore"
                 options={{
                     title: 'Explore',
                     tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={28}
-                            name="paperplane.fill"
-                            color={color}
+                        <Ionicons name="home" size={24} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="index"
+                options={{
+                    title: 'index',
+                    tabBarIcon: ({ color }) => (
+                        <MaterialIcons
+                            name="camera-enhance"
+                            size={24}
+                            color="black"
                         />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="settings"
+                options={{
+                    title: 'Settings',
+                    tabBarIcon: ({ color }) => (
+                        <Ionicons name="settings" size={24} color="black" />
                     ),
                 }}
             />
