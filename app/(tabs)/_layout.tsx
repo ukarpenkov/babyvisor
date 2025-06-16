@@ -8,7 +8,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="explore"
                 options={{
-                    title: 'Explore',
+                    title: 'Description',
                     tabBarIcon: ({ color }) => (
                         <Ionicons name="home" size={24} color={color} />
                     ),
@@ -17,7 +17,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: 'index',
+                    title: 'Camera',
                     tabBarIcon: ({ color }) => (
                         <MaterialIcons
                             name="camera-enhance"
