@@ -1,4 +1,5 @@
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, useNavigation } from 'expo-router'
+import { useEffect } from 'react'
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 const cardData = {
@@ -52,7 +53,13 @@ const cardData = {
 export default function CardDetails() {
     const { id } = useLocalSearchParams()
     const card = cardData[Array.isArray(id) ? id[0] : id] || cardData['1']
+    const navigation = useNavigation()
 
+    useEffect(() => {
+        navigation.setOptions({
+            headerTitle: '',
+        })
+    }, [navigation])
     return (
         <ScrollView style={styles.container}>
             <Image

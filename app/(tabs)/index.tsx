@@ -67,6 +67,7 @@ export default function HomeScreen() {
         <TouchableOpacity
             style={styles.card}
             onPress={() => router.push(`/details/${item.id}`)}
+            
         >
             <Image
                 source={item.image}
