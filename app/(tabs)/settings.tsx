@@ -1,9 +1,10 @@
-import { Text, View } from 'react-native'
+import { View } from 'react-native'
+import OneMonth from '../../components/OneMonth'
 
 export default function Serrtings() {
     return (
         <View>
-            <Text>1111111111111111111111111111111111111</Text>
+            <OneMonth />
         </View>
     )
 }
