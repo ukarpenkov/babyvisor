@@ -1,189 +1,125 @@
-import React, { useEffect, useState } from 'react'
-import { Button, Linking, StyleSheet, Text, View } from 'react-native'
-import type { CameraProps } from 'react-native-vision-camera'
-import {
-    Camera,
-    useCameraDevice,
-    useSkiaFrameProcessor,
-} from 'react-native-vision-camera'
+// CameraComponent.js
+import React from 'react';
+import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 
-import { Skia } from '@shopify/react-native-skia'
+/**
+ * Компонент CameraComponent для отображения вида с камеры с определенными визуальными настройками.
+ *
+ * Обратите внимание: многие из запрошенных эффектов (размытие, контраст, насыщенность)
+ * требуют постобработки. В react-native-vision-camera это реализуется через
+ * Frame Processors. Этот компонент использует только базовые пропсы для
+ * максимального приближения к желаемому результату.
+ */
+const CameraComponent = () => {
+  // Запрос разрешений на использование камеры
+  const { hasPermission, requestPermission } = useCameraPermission();
+  // Выбор устройства камеры (здесь используется задняя камера)
+  // Для эффекта "малой глубины резкости" можно было бы попытаться выбрать
+  // телефото-объектив ('telephoto'), если он доступен, так как он физически
+  // создает более сильное размытие фона.
+  const device = useCameraDevice('back');
 
-// Вспомогательная функция для создания матрицы преобразования цвета
-// (не может быть внутри worklet)
-const createColorMatrix = (matrix: number[]) => {
-    'worklet'
-    return Skia.ColorFilter.MakeMatrix(matrix)
-}
-
-const OneMonth = () => {
-    const [hasPermission, setHasPermission] = useState(false)
-    const device = useCameraDevice('back')
-
-    useEffect(() => {
-        // Запрос прав на использование камеры при монтировании компонента
-        ;(async () => {
-            const status = await Camera.requestCameraPermission()
-            setHasPermission(status === 'granted')
-        })()
-    }, [])
-
-    // 1. Размытие (малая глубина резкости) и 2. Сильное размытие
-    // Мы создаем сильный эффект размытия по Гауссу.
-    // Прямое управление f/1.8 невозможно, но сильное размытие имитирует малую глубину резкости.
-    const blurFilter = Skia.ImageFilter.MakeBlur(8, 8, Skia.TileMode.Clamp)
-
-    // 3. Уменьшение контраста и 4. Удаление цвета (черно-белое)
-    // Мы объединим эти два эффекта в одну цветовую матрицу для производительности.
-    const createCreativeColorFilter = () => {
-        'worklet'
-        // Насыщенность (Saturation) 0%
-        const s = 0
-        // Контраст (Contrast) -50%
-        const c = 0.5
-
-        // Матрица для преобразования в оттенки серого (Luminance-preserving)
-        const grayscaleMatrix = [
-            0.2126, 0.7152, 0.0722, 0, 0, 0.2126, 0.7152, 0.0722, 0, 0, 0.2126,
-            0.7152, 0.0722, 0, 0, 0, 0, 0, 1, 0,
-        ]
-
-        // Матрица для уменьшения контраста
-        const contrastValue = (1.0 - c) / 2.0
-        const contrastMatrix = [
-            c,
-            0,
-            0,
-            0,
-            contrastValue,
-            0,
-            c,
-            0,
-            0,
-            contrastValue,
-            0,
-            0,
-            c,
-            0,
-            contrastValue,
-            0,
-            0,
-            0,
-            1,
-            0,
-        ]
-
-        // Прямое создание матрицы для оттенков серого и контраста
-        const sr = (1 - s) * 0.2126
-        const sg = (1 - s) * 0.7152
-        const sb = (1 - s) * 0.0722
-        const t = (1.0 - c) / 2.0
-
-        const matrix = [
-            c * (sr + s),
-            c * sg,
-            c * sb,
-            0,
-            t,
-            c * sr,
-            c * (sg + s),
-            c * sb,
-            0,
-            t,
-            c * sr,
-            c * sg,
-            c * (sb + s),
-            0,
-            t,
-            0,
-            0,
-            0,
-            1,
-            0,
-        ]
-
-        return createColorMatrix(matrix)
-    }
-
-    // 5. Пересвеченные или затемненные участки
-    // Для этого мы будем использовать пропс `exposure` компонента Camera.
-    // Здесь мы просто задаем значение, но его можно менять динамически.
-    const exposure = 0.5 // +0.5 EV для легкого пересвета
-
-    // 6. Дрожание камеры (motion blur)
-    // Достигается отключением стабилизации видео.
-    const videoStabilizationMode: CameraProps['videoStabilizationMode'] = 'off'
-
-    const frameProcessor = useSkiaFrameProcessor((frame) => {
-        'worklet'
-        // Создаем объект Paint, к которому применим фильтры
-        const paint = Skia.Paint()
-
-        // Создаем фильтры внутри worklet
-        const colorFilter = createCreativeColorFilter()
-
-        // Совмещаем фильтры: сначала цвет, потом размытие
-        paint.setImageFilter(
-            Skia.ImageFilter.MakeCompose(
-                blurFilter, // Внешний фильтр (размытие)
-                Skia.ImageFilter.MakeColorFilter(colorFilter, null) // Внутренний фильтр (цвет/контраст)
-            )
-        )
-
-        // Рисуем обработанный кадр на холст
-        frame.draw(paint)
-    }, [])
-
-    // Рендеринг в зависимости от статуса
-    if (device == null) {
-        return (
-            <View style={styles.container}>
-                <Text style={styles.text}>Камера не найдена</Text>
-            </View>
-        )
-    }
-
+  // Запрашиваем разрешение, если его еще нет
+  React.useEffect(() => {
     if (!hasPermission) {
-        return (
-            <View style={styles.container}>
-                <Text style={styles.text}>Нет доступа к камере.</Text>
-                <Button
-                    title="Предоставить доступ"
-                    onPress={() => Linking.openSettings()}
-                />
-            </View>
-        )
+      requestPermission();
     }
+  }, [hasPermission, requestPermission]);
 
+  // Отображение индикатора загрузки, пока устройство не готово или нет разрешений
+  if (!hasPermission) {
     return (
-        <View style={styles.container}>
-            <Camera
-                style={StyleSheet.absoluteFill}
-                device={device}
-                isActive={true}
-                // Включаем Frame Processor для обработки в реальном времени
-                frameProcessor={frameProcessor}
-                // Настройки для других эффектов
-                exposure={exposure}
-                videoStabilizationMode={videoStabilizationMode}
-                // Устанавливаем формат с поддержкой HDR для лучшего качества исходного изображения
-                format={device.formats.find((f) => f.supportsPhotoHdr)}
-            />
-        </View>
-    )
-}
+      <View style={styles.container}>
+        <Text style={styles.text}>Запрос разрешений...</Text>
+      </View>
+    );
+  }
+
+  if (device == null) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#ffffff" />
+        <Text style={styles.text}>Загрузка камеры...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Camera
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive={true}
+        photo={true} // Включаем возможность делать фото
+
+        // --- НАСТРОЙКИ ЭФФЕКТОВ ---
+
+        // 1. Размытие (малая глубина резкости, f/1.8 и сильное боке):
+        // ПРИМЕЧАНИЕ: Управление диафрагмой (f-stop) напрямую невозможно.
+        // Эффект "боке" (портретный режим) достигается программно и обычно
+        // применяется при съемке фото, а не на превью. Выбор 'telephoto'
+        // объектива может помочь, но это аппаратная особенность.
+
+        // 2. Сильное размытие (низкий sharpness, blur фильтр):
+        // ПРИМЕЧАНИЕ: Этот эффект невозможно применить через базовые пропсы.
+        // Для этого необходим Frame Processor, который бы применял
+        // фильтр размытия к каждому кадру.
+
+        // 3. Уменьшение контраста и 4. Удаление цвета (черно-белый):
+        // ПРИМЕЧАНИЕ: Как и размытие, эти эффекты (контраст, насыщенность)
+        // являются классическими фильтрами постобработки и требуют
+        // реализации через Frame Processor.
+
+        // 5. Пересвеченные или затемненные участки (highlights + shadows):
+        // Мы можем управлять общей экспозицией, чтобы сделать изображение темнее или светлее.
+        // Значение может быть от `minExposure` до `maxExposure` устройства.
+        // Например, `-1` сделает изображение темнее.
+        exposure={-1}
+
+        // 6. Дрожание камеры (motion blur):
+        // Чтобы симулировать "дрожание" и добавить размытие в движении,
+        // мы можем отключить стабилизацию видео. Это сделает картинку менее плавной.
+        videoStabilizationMode={'off'}
+
+        // Для сильного эффекта размытия при движении в условиях низкой освещенности
+        // можно было бы включить режим ночной съемки, но это также зависит от устройства.
+        // lowLightBoost={device.supportsLowLightBoost}
+      />
+      <View style={styles.overlay}>
+        <Text style={styles.infoText}>
+          Для эффектов размытия, контраста и обесцвечивания необходимы Frame Processors.
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: 'black',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    text: {
-        color: 'white',
-        fontSize: 18,
-    },
-})
+  container: {
+    flex: 1,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  text: {
+    color: 'white',
+    fontSize: 18,
+  },
+  overlay: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 10,
+    borderRadius: 5,
+  },
+  infoText: {
+    color: 'white',
+    textAlign: 'center',
+  },
+});
 
-export default OneMonth
+export default CameraComponent;
+
