@@ -1,21 +1,24 @@
-import { Text } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import {
     Camera,
-    useCameraDevices,
+    useCameraDevice,
     useCameraPermission,
 } from 'react-native-vision-camera'
 
 export default function Settings() {
-    const devices = useCameraDevices()
-    const device = devices?.find((d) => d.position === 'back')
+    const device = useCameraDevice('back')
     const { hasPermission } = useCameraPermission()
 
-    if (!hasPermission) return <Text>NOOO</Text>
-    if (device == null) return <Text>NOOO DEVICE</Text>
+    if (!hasPermission) return <Text>No</Text>
+    if (device == null) return <Text>No</Text>
     return (
-        <Camera
-            device={device}
-            isActive={true}
-        />
+        <View>
+            <Text>Camera</Text>
+            <Camera
+                style={StyleSheet.absoluteFill}
+                device={device}
+                isActive={true}
+            />
+        </View>
     )
 }
