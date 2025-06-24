@@ -1,52 +1,95 @@
-import {
-    Platform,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    View,
-} from 'react-native'
-import {
-    Camera,
-    useCameraDevice,
-    useCameraPermission,
-} from 'react-native-vision-camera'
-
+import { Camera } from 'expo-camera'
+import { manipulateAsync } from 'expo-image-manipulator'
+import React, { useEffect, useRef, useState } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
 export default function Settings() {
-    const device = useCameraDevice('back')
-    const { hasPermission } = useCameraPermission()
+    const [hasPermission, setHasPermission] = useState<boolean | null>(null)
+    const cameraRef = useRef<Camera>(null)
 
-    if (!hasPermission) return <Text>No permission</Text>
-    if (device == null) return <Text>No device</Text>
+    useEffect(() => {
+        ;(async () => {
+            const { status } = await Camera.requestCameraPermissionsAsync()
+            setHasPermission(status === 'granted')
+        })()
+    }, [])
+
+    if (hasPermission === null) {
+        return <View />
+    }
+    if (hasPermission === false) {
+        return <Text>No access to camera</Text>
+    }
+
+    // Функция для применения эффектов к каждому кадру (симуляция)
+    const applyLiveEffects = async () => {
+        if (cameraRef.current) {
+            const options = {
+                quality: 0.1, // Низкое качество для ускорения обработки
+                base64: true,
+                exif: false,
+            }
+
+            const photo = await cameraRef.current.takePictureAsync(options)
+
+            // Применяем эффекты
+            const manipulatedImage = await manipulateAsync(
+                photo.uri,
+                [
+                    { resize: { width: 200 } }, // Уменьшаем для производительности
+                    { blur: 20 }, // Сильное размытие
+                    { grayscale: true }, // Удаление цвета
+                    { contrast: 0.5 }, // Уменьшение контраста
+                ],
+                { base64: true }
+            )
+
+            // Здесь можно отобразить обработанное изображение вместо превью
+        }
+    }
+
+    // Используем интервал для симуляции "дрожания камеры"
+    useEffect(() => {
+        const interval = setInterval(() => {
+            applyLiveEffects()
+        }, 100) // Частота обновления эффектов
+
+        return () => clearInterval(interval)
+    }, [])
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.content}>
-                <Text>Camera</Text>
-                <Camera
-                    device={device}
-                    isActive={true}
-                    style={styles.camera}
-                    exposure={-5}
-                    photo={true}
-                />
-            </View>
-        </SafeAreaView>
+        <View style={styles.container}>
+            <Camera
+                ref={cameraRef}
+                style={styles.camera}
+                type={CameraType.back}
+                autoFocus={true}
+                whiteBalance={Camera.Constants.WhiteBalance.auto}
+                zoom={0}
+                // Настройки, которые поддерживаются нативно
+                pictureSize="640x480"
+            >
+                <View style={styles.overlay}>
+                    {/* Здесь можно добавить элементы интерфейса */}
+                </View>
+            </Camera>
+        </View>
     )
 }
 
 const styles = StyleSheet.create({
     container: {
-        marginTop: 50,
         flex: 1,
-        backgroundColor: '#f5f5f5',
-    },
-    content: {
-        flex: 1,
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-        paddingBottom: Platform.OS === 'android' ? 24 : 0,
     },
     camera: {
         flex: 1,
+    },
+    overlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 })
