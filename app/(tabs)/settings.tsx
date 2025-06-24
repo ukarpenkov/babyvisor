@@ -23,7 +23,12 @@ export default function Settings() {
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
                 <Text>Camera</Text>
-                <Camera device={device} isActive={true} style={styles.camera} />
+                <Camera
+                    device={device}
+                    isActive={true}
+                    style={styles.camera}
+                    exposure={-2}
+                />
             </View>
         </SafeAreaView>
     )
