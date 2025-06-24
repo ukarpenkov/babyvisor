@@ -1,77 +1,44 @@
-import { Camera } from 'expo-camera'
-import { manipulateAsync } from 'expo-image-manipulator'
-import React, { useEffect, useRef, useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { CameraType, CameraView, useCameraPermissions } from 'expo-camera'
+import { useState } from 'react'
+import { Button, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+
 export default function Settings() {
-    const [hasPermission, setHasPermission] = useState<boolean | null>(null)
-    const cameraRef = useRef<Camera>(null)
+    const [facing, setFacing] = useState<CameraType>('back')
+    const [permission, requestPermission] = useCameraPermissions()
 
-    useEffect(() => {
-        ;(async () => {
-            const { status } = await Camera.requestCameraPermissionsAsync()
-            setHasPermission(status === 'granted')
-        })()
-    }, [])
-
-    if (hasPermission === null) {
+    if (!permission) {
+        // Camera permissions are still loading.
         return <View />
     }
-    if (hasPermission === false) {
-        return <Text>No access to camera</Text>
+
+    if (!permission.granted) {
+        // Camera permissions are not granted yet.
+        return (
+            <View style={styles.container}>
+                <Text style={styles.message}>
+                    We need your permission to show the camera
+                </Text>
+                <Button onPress={requestPermission} title="grant permission" />
+            </View>
+        )
     }
 
-    // Функция для применения эффектов к каждому кадру (симуляция)
-    const applyLiveEffects = async () => {
-        if (cameraRef.current) {
-            const options = {
-                quality: 0.1, // Низкое качество для ускорения обработки
-                base64: true,
-                exif: false,
-            }
-
-            const photo = await cameraRef.current.takePictureAsync(options)
-
-            // Применяем эффекты
-            const manipulatedImage = await manipulateAsync(
-                photo.uri,
-                [
-                    { resize: { width: 200 } }, // Уменьшаем для производительности
-                    { blur: 20 }, // Сильное размытие
-                    { grayscale: true }, // Удаление цвета
-                    { contrast: 0.5 }, // Уменьшение контраста
-                ],
-                { base64: true }
-            )
-
-            // Здесь можно отобразить обработанное изображение вместо превью
-        }
+    function toggleCameraFacing() {
+        setFacing((current) => (current === 'back' ? 'front' : 'back'))
     }
-
-    // Используем интервал для симуляции "дрожания камеры"
-    useEffect(() => {
-        const interval = setInterval(() => {
-            applyLiveEffects()
-        }, 100) // Частота обновления эффектов
-
-        return () => clearInterval(interval)
-    }, [])
 
     return (
         <View style={styles.container}>
-            <Camera
-                ref={cameraRef}
-                style={styles.camera}
-                type={CameraType.back}
-                autoFocus={true}
-                whiteBalance={Camera.Constants.WhiteBalance.auto}
-                zoom={0}
-                // Настройки, которые поддерживаются нативно
-                pictureSize="640x480"
-            >
-                <View style={styles.overlay}>
-                    {/* Здесь можно добавить элементы интерфейса */}
+            <CameraView style={styles.camera} facing={facing}>
+                <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={toggleCameraFacing}
+                    >
+                        <Text style={styles.text}>Flip Camera</Text>
+                    </TouchableOpacity>
                 </View>
-            </Camera>
+            </CameraView>
         </View>
     )
 }
@@ -79,17 +46,29 @@ export default function Settings() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        justifyContent: 'center',
+    },
+    message: {
+        textAlign: 'center',
+        paddingBottom: 10,
     },
     camera: {
         flex: 1,
     },
-    overlay: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        justifyContent: 'center',
+    buttonContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        backgroundColor: 'transparent',
+        margin: 64,
+    },
+    button: {
+        flex: 1,
+        alignSelf: 'flex-end',
         alignItems: 'center',
+    },
+    text: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: 'white',
     },
 })

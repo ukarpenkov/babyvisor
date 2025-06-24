@@ -19,7 +19,7 @@
     "@types/react": "~19.0.10",
     "expo": "~53.0.9",
     "expo-blur": "~14.1.4",
-    "expo-camera": "^16.1.8",
+    "expo-camera": "~16.1.8",
     "expo-constants": "~17.1.6",
     "expo-font": "~13.3.1",
     "expo-haptics": "~14.1.4",
