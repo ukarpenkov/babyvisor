@@ -27,7 +27,8 @@ export default function Settings() {
                     device={device}
                     isActive={true}
                     style={styles.camera}
-                    exposure={-2}
+                    exposure={-5}
+                    photo={true}
                 />
             </View>
         </SafeAreaView>
@@ -36,6 +37,7 @@ export default function Settings() {
 
 const styles = StyleSheet.create({
     container: {
+        marginTop: 50,
         flex: 1,
         backgroundColor: '#f5f5f5',
     },
