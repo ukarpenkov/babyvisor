@@ -10,7 +10,7 @@ export default function TabLayout() {
                 options={{
                     title: 'Description',
                     tabBarIcon: ({ color }) => (
-                        <Ionicons name="home" size={24} color={color} />
+                        <Ionicons name="book" size={24} color="black" />
                     ),
                 }}
             />
@@ -28,9 +28,9 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="settings"
+                name="сamera"
                 options={{
-                    title: 'Settings',
+                    title: 'Camera',
                     tabBarIcon: ({ color }) => (
                         <Ionicons name="settings" size={24} color="black" />
                     ),
