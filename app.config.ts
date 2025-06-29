@@ -1,12 +1,33 @@
 import { ExpoConfig } from 'expo/config'
-import 'ts-node/register' // Add this to import TypeScript files
 
-const config: ExpoConfig = {
-    name: 'BabyVisor',
-    slug: 'BabyVisor',
+// In SDK 46 and lower, use the following import instead:
+// import { ExpoConfig } from '@expo/config-types';
+
+export default (): ExpoConfig => ({
+    name: 'babyvisor',
     owner: 'yurijs',
+    slug: 'BabyVisor', // Updated slug to match the project
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/images/icon.png',
+    scheme: 'babyvisor',
+    userInterfaceStyle: 'automatic',
+    newArchEnabled: true,
+    ios: {
+        supportsTablet: true,
+    },
     android: {
-        package: 'com.yurijs.BabyVisor',
+        package: 'com.yurijs.babyvisor', // Add your unique application ID here
+        adaptiveIcon: {
+            foregroundImage: './assets/images/adaptive-icon.png',
+            backgroundColor: '#ffffff',
+        },
+        edgeToEdgeEnabled: true,
+    },
+    web: {
+        bundler: 'metro',
+        output: 'static',
+        favicon: './assets/images/favicon.png',
     },
     extra: {
         eas: {
@@ -14,13 +35,37 @@ const config: ExpoConfig = {
         },
     },
     plugins: [
+        'expo-router',
+        [
+            'expo-camera',
+            {
+                cameraPermission: 'Allow $(PRODUCT_NAME) to access your camera',
+                microphonePermission:
+                    'Allow $(PRODUCT_NAME) to access your microphone',
+                recordAudioAndroid: true,
+            },
+        ],
+        [
+            'expo-splash-screen',
+            {
+                image: './assets/images/splash-icon.png',
+                imageWidth: 200,
+                resizeMode: 'contain',
+                backgroundColor: '#ffffff',
+            },
+        ],
         [
             'react-native-vision-camera',
             {
-                cameraPermissionText: 'BabyVisor needs access to your Camera.',
+                cameraPermissionText:
+                    '$(PRODUCT_NAME) needs access to your Camera.',
+                enableMicrophonePermission: true,
+                microphonePermissionText:
+                    '$(PRODUCT_NAME) needs access to your Microphone.',
             },
         ],
     ],
-}
-
-export default config
+    experiments: {
+        typedRoutes: true,
+    },
+})
