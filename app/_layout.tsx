@@ -27,13 +27,6 @@ export default function RootLayout() {
         >
             <Stack>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen
-                    name="preview"
-                    options={{
-                        title: 'Предпросмотр',
-                        headerBackTitle: 'Назад',
-                    }}
-                />
             </Stack>
             <StatusBar style="auto" />
         </ThemeProvider>

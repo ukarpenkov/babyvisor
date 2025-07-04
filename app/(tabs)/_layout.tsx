@@ -1,38 +1,36 @@
-import { Ionicons, MaterialIcons } from '@expo/vector-icons'
+// app/(tabs)/_layout.tsx
+import FontAwesome from '@expo/vector-icons/FontAwesome'
 import { Tabs } from 'expo-router'
 import React from 'react'
 
 export default function TabLayout() {
     return (
-        <Tabs screenOptions={{ headerShown: false }}>
-            <Tabs.Screen
-                name="explore"
-                options={{
-                    title: 'Description',
-                    tabBarIcon: ({ color }) => (
-                        <Ionicons name="book" size={24} color="black" />
-                    ),
-                }}
-            />
+        <Tabs screenOptions={{ tabBarActiveTintColor: 'blue' }}>
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: 'Camera',
-                    tabBarIcon: ({ color }) => (
-                        <MaterialIcons
-                            name="camera-enhance"
-                            size={24}
-                            color="black"
-                        />
+                    title: 'Информацмия',
+                    tabBarIcon: ({ color }: { color: string }) => (
+                        <FontAwesome size={24} name="file-text" color={color} />
                     ),
                 }}
             />
             <Tabs.Screen
-                name="сamera"
+                name="camera"
                 options={{
-                    title: 'Camera',
-                    tabBarIcon: ({ color }) => (
-                        <Ionicons name="settings" size={24} color="black" />
+                    title: 'Камера',
+                    tabBarIcon: ({ color }: { color: string }) => (
+                        <FontAwesome size={24} name="camera" color={color} />
+                    ),
+                    headerShown: false,
+                }}
+            />
+            <Tabs.Screen
+                name="editor"
+                options={{
+                    title: 'Редактор',
+                    tabBarIcon: ({ color }: { color: string }) => (
+                        <FontAwesome size={28} name="edit" color={color} />
                     ),
                 }}
             />

@@ -1,94 +1,94 @@
-import { CameraType, CameraView, useCameraPermissions } from 'expo-camera'
+// app/(tabs)/camera.tsx
+import FontAwesome from '@expo/vector-icons/FontAwesome'
+import { useIsFocused } from '@react-navigation/native' // ИЗМЕНЕНИЕ: Импортируем хук
+import {
+    Camera,
+    CameraCapturedPicture,
+    CameraView,
+    PermissionResponse,
+} from 'expo-camera'
 import { useRouter } from 'expo-router'
-import React, { useRef, useState } from 'react'
-import { Button, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Button, Pressable, StyleSheet, Text, View } from 'react-native'
 
-const CameraTab: React.FC = () => {
-    // Типизируем состояние для направления камеры
-    const [facing, setFacing] = useState<CameraType>('back')
-    const [permission, requestPermission] = useCameraPermissions()
-    // Типизируем ref для доступа к методам CameraView
+export default function CameraScreen() {
+    const [permission, setPermission] = useState<PermissionResponse | null>(
+        null
+    )
+    const isFocused = useIsFocused() // ИЗМЕНЕНИЕ: Получаем статус фокуса экрана
     const cameraRef = useRef<CameraView>(null)
     const router = useRouter()
 
+    useEffect(() => {
+        ;(async () => {
+            const response = await Camera.requestCameraPermissionsAsync()
+            setPermission(response)
+        })()
+    }, [])
+
+    const takePicture = async (): Promise<void> => {
+        if (cameraRef.current) {
+            const photo: CameraCapturedPicture =
+                await cameraRef.current.takePictureAsync()
+            router.push({
+                pathname: './editor',
+                params: { imageUri: photo.uri },
+            })
+        }
+    }
+
     if (!permission) {
-        // Разрешения камеры еще загружаются.
+        // Можно оставить пустой View для момента загрузки статуса разрешений
         return <View />
     }
 
     if (!permission.granted) {
-        // Разрешения камеры еще не предоставлены.
         return (
             <View style={styles.container}>
                 <Text style={{ textAlign: 'center' }}>
-                    Нам нужно ваше разрешение, чтобы показать камеру
+                    Нам нужно разрешение для использования камеры
                 </Text>
                 <Button
-                    onPress={requestPermission}
-                    title="предоставить разрешение"
+                    onPress={async () => {
+                        const response =
+                            await Camera.requestCameraPermissionsAsync()
+                        setPermission(response)
+                    }}
+                    title="Дать разрешение"
                 />
             </View>
         )
     }
 
-    async function takePicture() {
-        // Проверяем, что ref существует
-        if (cameraRef.current) {
-            // Результат съемки имеет тип CameraCapturedPicture
-            const photo = await cameraRef.current.takePictureAsync()
-            if (photo) {
-                // Передаем uri как параметр
-                router.push({
-                    pathname: '/preview',
-                    params: { uri: photo.uri },
-                })
-            }
-        }
+    // ИЗМЕНЕНИЕ: Добавляем проверку на фокус.
+    // Если экран не в фокусе, мы ничего не рендерим, чтобы освободить камеру.
+    if (!isFocused) {
+        return <View />
     }
 
     return (
         <View style={styles.container}>
-            <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
+            {/* Рендерим CameraView только если экран в фокусе */}
+            <CameraView style={styles.camera} facing="back" ref={cameraRef}>
                 <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={takePicture}
-                    >
-                        <Text style={styles.text}>Сделать фото</Text>
-                    </TouchableOpacity>
+                    <Pressable style={styles.button} onPress={takePicture}>
+                        <FontAwesome name="circle-o" size={64} color="white" />
+                    </Pressable>
                 </View>
             </CameraView>
         </View>
     )
 }
 
+// Стили остаются такими же
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    camera: {
-        flex: 1,
-    },
+    container: { flex: 1, justifyContent: 'center' },
+    camera: { flex: 1 },
     buttonContainer: {
         flex: 1,
         flexDirection: 'row',
         backgroundColor: 'transparent',
         margin: 64,
     },
-    button: {
-        flex: 1,
-        alignSelf: 'flex-end',
-        alignItems: 'center',
-        backgroundColor: 'white',
-        borderRadius: 50,
-        padding: 15,
-    },
-    text: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: 'black',
-    },
+    button: { flex: 1, alignSelf: 'flex-end', alignItems: 'center' },
 })
-
-export default CameraTab

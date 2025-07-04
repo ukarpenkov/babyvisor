@@ -64,6 +64,22 @@ export default (): ExpoConfig => ({
                     '$(PRODUCT_NAME) needs access to your Microphone.',
             },
         ],
+        [
+            'expo-media-library',
+            {
+                photosPermission:
+                    'Allow $(PRODUCT_NAME) to access your photos.',
+                savePhotosPermission: 'Allow $(PRODUCT_NAME) to save photos.',
+                isAccessMediaLocationEnabled: true,
+            },
+        ],
+        [
+            'expo-image-picker',
+            {
+                photosPermission:
+                    'The app accesses your photos to let you edit them.',
+            },
+        ],
     ],
     experiments: {
         typedRoutes: true,
