@@ -1,6 +1,5 @@
-// app/(tabs)/camera.tsx
 import FontAwesome from '@expo/vector-icons/FontAwesome'
-import { useIsFocused } from '@react-navigation/native' // ИЗМЕНЕНИЕ: Импортируем хук
+import { useIsFocused } from '@react-navigation/native'
 import {
     Camera,
     CameraCapturedPicture,
@@ -15,7 +14,7 @@ export default function CameraScreen() {
     const [permission, setPermission] = useState<PermissionResponse | null>(
         null
     )
-    const isFocused = useIsFocused() // ИЗМЕНЕНИЕ: Получаем статус фокуса экрана
+    const isFocused = useIsFocused()
     const cameraRef = useRef<CameraView>(null)
     const router = useRouter()
 
@@ -38,7 +37,6 @@ export default function CameraScreen() {
     }
 
     if (!permission) {
-        // Можно оставить пустой View для момента загрузки статуса разрешений
         return <View />
     }
 
@@ -46,7 +44,7 @@ export default function CameraScreen() {
         return (
             <View style={styles.container}>
                 <Text style={{ textAlign: 'center' }}>
-                    Нам нужно разрешение для использования камеры
+                    Приложению нужно разрешение для использования камеры
                 </Text>
                 <Button
                     onPress={async () => {
@@ -60,15 +58,12 @@ export default function CameraScreen() {
         )
     }
 
-    // ИЗМЕНЕНИЕ: Добавляем проверку на фокус.
-    // Если экран не в фокусе, мы ничего не рендерим, чтобы освободить камеру.
     if (!isFocused) {
         return <View />
     }
 
     return (
         <View style={styles.container}>
-            {/* Рендерим CameraView только если экран в фокусе */}
             <CameraView style={styles.camera} facing="back" ref={cameraRef}>
                 <View style={styles.buttonContainer}>
                     <Pressable style={styles.button} onPress={takePicture}>
@@ -80,7 +75,6 @@ export default function CameraScreen() {
     )
 }
 
-// Стили остаются такими же
 const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'center' },
     camera: { flex: 1 },

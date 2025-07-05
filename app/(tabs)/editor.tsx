@@ -1,4 +1,3 @@
-// app/(tabs)/editor.tsx
 import FontAwesome from '@expo/vector-icons/FontAwesome'
 import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
@@ -18,8 +17,6 @@ import {
 } from 'react-native'
 import ViewShot from 'react-native-view-shot'
 
-// --- Типы ---
-
 interface FilterConfig {
     name: string
     imageStyle?: ImageStyle
@@ -30,33 +27,85 @@ type EditorScreenParams = {
     imageUri?: string
 }
 
-// --- Конфигурация фильтров на основе стилей ---
+// ИЗМЕНЕНИЕ: Полностью переработанный массив фильтров для имитации зрения по месяцам
 const FILTERS: FilterConfig[] = [
     { name: 'Оригинал', imageStyle: {}, overlayStyle: {} },
     {
-        name: 'Ч/Б',
+        name: 'Новорожденный',
+        imageStyle: { blurRadius: 20 }, // Очень сильное размытие
         overlayStyle: {
             backgroundColor: '#FFF',
             mixBlendMode: 'color',
         },
     },
     {
-        name: 'Сепия',
+        name: '1 месяц',
+        imageStyle: { blurRadius: 15 }, // Сильное размытие
         overlayStyle: {
-            backgroundColor: 'rgba(112, 66, 20, 0.4)',
-            mixBlendMode: 'multiply',
+            backgroundColor: '#FFF',
+            mixBlendMode: 'color',
         },
     },
     {
-        name: 'Контраст',
+        name: '2 месяца',
+        imageStyle: { blurRadius: 10 }, // Все еще размыто, но лучше
         overlayStyle: {
-            backgroundColor: 'rgba(255, 255, 255, 0.3)',
-            mixBlendMode: 'overlay',
+            backgroundColor: '#FFF',
+            mixBlendMode: 'color',
         },
     },
-    { name: 'Красный', imageStyle: { tintColor: 'rgba(255, 0, 0, 0.3)' } },
-    { name: 'Зеленый', imageStyle: { tintColor: 'rgba(0, 255, 0, 0.3)' } },
-    { name: 'Голубой', imageStyle: { tintColor: 'rgba(0, 150, 255, 0.3)' } },
+    {
+        name: '3 месяца',
+        imageStyle: {
+            blurRadius: 8,
+            filter: 'contrast(1.2) grayscale(100%)', // Сначала обесцвечиваем всё
+        },
+        overlayStyle: {
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            mixBlendMode: 'overlay',
+        },
+        // Добавляем дополнительный слой для выделения красных/желтых цветов
+        additionalLayer: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background:
+                'linear-gradient(to bottom, rgba(255, 0, 0, 0.3), rgba(255, 255, 0, 0.3))',
+            mixBlendMode: 'color-dodge',
+            pointerEvents: 'none', 
+        },
+    },
+    {
+        name: '4 месяца',
+        imageStyle: { blurRadius: 6 }, // Развивается глубина восприятия
+        // Наложение почти не требуется, цвета становятся насыщеннее
+        overlayStyle: {
+            backgroundColor: 'rgba(250, 220, 220, 0.05)',
+            mixBlendMode: 'normal',
+        },
+    },
+    {
+        name: '6 месяцев',
+        imageStyle: { blurRadius: 4 }, // Хорошая четкость, почти как у взрослых
+        overlayStyle: {}, // Цветовое зрение хорошо развито
+    },
+    {
+        name: '8 месяцев',
+        imageStyle: { blurRadius: 2 }, // Зрение становится еще острее
+        overlayStyle: {},
+    },
+    {
+        name: '10 месяцев',
+        imageStyle: { blurRadius: 1 }, // Очень близко к идеальному
+        overlayStyle: {},
+    },
+    {
+        name: '1 год',
+        imageStyle: { blurRadius: 0 }, // Зрение четкое, как у взрослого
+        overlayStyle: {},
+    },
 ]
 
 export default function EditorScreen() {
@@ -88,7 +137,6 @@ export default function EditorScreen() {
         }
     }, [])
 
-    // ИЗМЕНЕНИЕ: Новая функция для сброса состояния
     const handleClear = () => {
         setImageUri(null)
         setShowConfirmation(false)
@@ -176,6 +224,7 @@ export default function EditorScreen() {
                         selectedFilter?.imageStyle,
                     ]}
                     contentFit="contain"
+                    blurRadius={selectedFilter?.imageStyle?.blurRadius ?? 0}
                 />
                 {selectedFilter?.overlayStyle && (
                     <View
@@ -187,15 +236,12 @@ export default function EditorScreen() {
                 )}
             </ViewShot>
 
-            {/* ИЗМЕНЕНИЕ: Контейнер для верхних кнопок */}
             <View style={styles.topButtonsContainer}>
-                {/* Кнопка Сохранить (появляется при выборе фильтра) */}
                 {selectedFilter && selectedFilter.name !== 'Оригинал' && (
                     <Pressable style={styles.iconButton} onPress={saveImage}>
                         <FontAwesome name="save" size={24} color="white" />
                     </Pressable>
                 )}
-                {/* Кнопка Очистить */}
                 <Pressable style={styles.iconButton} onPress={handleClear}>
                     <FontAwesome name="trash" size={24} color="white" />
                 </Pressable>
@@ -268,14 +314,13 @@ const styles = StyleSheet.create({
         flex: 1,
         width: '100%',
     },
-    // ИЗМЕНЕНИЕ: Новые стили для верхних кнопок
     topButtonsContainer: {
         position: 'absolute',
         top: 40,
         right: 20,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 15, // Расстояние между кнопками
+        gap: 15,
         zIndex: 10,
     },
     iconButton: {

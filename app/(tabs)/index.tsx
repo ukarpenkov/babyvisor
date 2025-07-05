@@ -1,8 +1,6 @@
-// app/(tabs)/index.tsx
 import React, { PropsWithChildren, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
-// Типизируем props для нашего компонента
 interface CollapsibleSectionProps {
     title: string
 }
@@ -10,7 +8,6 @@ interface CollapsibleSectionProps {
 const CollapsibleSection: React.FC<
     PropsWithChildren<CollapsibleSectionProps>
 > = ({ title, children }) => {
-    // Типизируем state
     const [isCollapsed, setIsCollapsed] = useState<boolean>(true)
 
     return (
@@ -57,7 +54,6 @@ export default function AboutScreen() {
     )
 }
 
-// Стили остаются такими же
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 16, backgroundColor: '#f5f5f5' },
     title: {
