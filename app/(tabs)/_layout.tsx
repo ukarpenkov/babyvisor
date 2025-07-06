@@ -1,16 +1,32 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { Tabs } from 'expo-router'
 import React from 'react'
+import { useColorScheme } from 'react-native'
 
 export default function TabLayout() {
+    const colorScheme = useColorScheme()
     return (
-        <Tabs screenOptions={{ tabBarActiveTintColor: 'black' }}>
+        <Tabs
+            screenOptions={{
+                tabBarActiveTintColor:
+                    colorScheme === 'dark' ? 'white' : 'black', 
+                tabBarInactiveTintColor: 'gray', // если не выбран
+                tabBarStyle: {
+                    backgroundColor:
+                        colorScheme === 'dark' ? '#121212' : '#f5f5f5', 
+                },
+            }}
+        >
             <Tabs.Screen
                 name="index"
                 options={{
                     title: 'Информацмия',
-                    tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="info" size={24} color="black" />
+                    tabBarIcon: () => (
+                        <MaterialIcons
+                            name="info"
+                            size={24}
+                            color={colorScheme === 'dark' ? 'white' : 'dark'}
+                        />
                     ),
                 }}
             />
@@ -18,11 +34,11 @@ export default function TabLayout() {
                 name="camera"
                 options={{
                     title: 'Камера',
-                    tabBarIcon: ({ color }: { color: string }) => (
+                    tabBarIcon: () => (
                         <MaterialIcons
                             name="camera-enhance"
                             size={24}
-                            color="black"
+                            color={colorScheme === 'dark' ? 'white' : 'dark'}
                         />
                     ),
                     headerShown: false,
@@ -32,8 +48,12 @@ export default function TabLayout() {
                 name="editor"
                 options={{
                     title: 'Редактор',
-                    tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="create" size={24} color="black" />
+                    tabBarIcon: () => (
+                        <MaterialIcons
+                            name="create"
+                            size={24}
+                            color={colorScheme === 'dark' ? 'white' : 'dark'}
+                        />
                     ),
                 }}
             />
