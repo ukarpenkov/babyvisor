@@ -7,105 +7,83 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useRef, useState } from 'react'
 import {
     Alert,
-    ImageStyle,
     Pressable,
     ScrollView,
-    StyleProp,
     StyleSheet,
     Text,
     View,
-    ViewStyle,
 } from 'react-native'
 import ViewShot from 'react-native-view-shot'
 
 interface FilterConfig {
     name: string
-    imageStyle?: ImageStyle
-    overlayStyle?: StyleProp<ViewStyle>
+    description: string
+    imageStyle: {
+        filter?: string
+    }
 }
 
-type EditorScreenParams = {
-    imageUri?: string
-}
-
-// ИЗМЕНЕНИЕ: Полностью переработанный массив фильтров для имитации зрения по месяцам
 const FILTERS: FilterConfig[] = [
-    { name: 'Оригинал', imageStyle: {}, overlayStyle: {} },
+    {
+        name: 'Оригинал',
+        description: 'Полностью цветное и четкое изображение.',
+        imageStyle: {},
+    },
     {
         name: 'Новорожденный',
-        imageStyle: { blurRadius: 20 }, // Очень сильное размытие
-        overlayStyle: {
-            backgroundColor: '#FFF',
-            mixBlendMode: 'color',
+        description:
+            'Мир в пятнах. Зрение очень размытое, почти без цветов. Фокусировка на расстоянии 20-30 см.',
+        imageStyle: {
+            filter: 'blur(30px) grayscale(1) contrast(1.2)',
         },
     },
     {
         name: '1 месяц',
-        imageStyle: { blurRadius: 15 }, // Сильное размытие
-        overlayStyle: {
-            backgroundColor: '#FFF',
-            mixBlendMode: 'color',
+        description:
+            'Начинает видеть яркие предметы. Появляется первый цвет — красный.',
+        imageStyle: {
+            filter: 'blur(25px) grayscale(0.9) sepia(0.3) hue-rotate(-20deg)',
         },
     },
     {
         name: '2 месяца',
-        imageStyle: { blurRadius: 10 }, // Все еще размыто, но лучше
-        overlayStyle: {
-            backgroundColor: '#FFF',
-            mixBlendMode: 'color',
+        description:
+            'Начинает следить за предметами. Различает красный и зеленый цвета.',
+        imageStyle: {
+            filter: 'blur(15px) grayscale(0.7) contrast(1.1)',
         },
     },
     {
         name: '3 месяца',
+        description:
+            'Распознает черты лица, появляется объемное зрение. Различает желтый цвет.',
         imageStyle: {
-            blurRadius: 8,
-            filter: 'contrast(1.2) grayscale(100%)', // Сначала обесцвечиваем всё
-        },
-        overlayStyle: {
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            mixBlendMode: 'overlay',
-        },
-        // Добавляем дополнительный слой для выделения красных/желтых цветов
-        additionalLayer: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background:
-                'linear-gradient(to bottom, rgba(255, 0, 0, 0.3), rgba(255, 255, 0, 0.3))',
-            mixBlendMode: 'color-dodge',
-            pointerEvents: 'none',
+            filter: 'blur(10px) grayscale(0.5) contrast(1.1)',
         },
     },
     {
         name: '4 месяца',
-        imageStyle: { blurRadius: 6 }, // Развивается глубина восприятия
-        // Наложение почти не требуется, цвета становятся насыщеннее
-        overlayStyle: {
-            backgroundColor: 'rgba(250, 220, 220, 0.05)',
-            mixBlendMode: 'normal',
+        description:
+            'Мир становится еще красочнее! Малыш уже может отличить синий цвет.',
+        imageStyle: {
+            filter: 'blur(6px) grayscale(0.3)',
         },
     },
     {
         name: '6 месяцев',
-        imageStyle: { blurRadius: 4 }, // Хорошая четкость, почти как у взрослых
-        overlayStyle: {}, // Цветовое зрение хорошо развито
-    },
-    {
-        name: '8 месяцев',
-        imageStyle: { blurRadius: 2 }, // Зрение становится еще острее
-        overlayStyle: {},
-    },
-    {
-        name: '10 месяцев',
-        imageStyle: { blurRadius: 1 }, // Очень близко к идеальному
-        overlayStyle: {},
+        description:
+            'Хорошая четкость. Различает формы, размеры и даже фактуру предметов.',
+        imageStyle: {
+            filter: 'blur(3px) grayscale(0.1)',
+        },
     },
     {
         name: '1 год',
-        imageStyle: { blurRadius: 0 }, // Зрение четкое, как у взрослого
-        overlayStyle: {},
+        description:
+            'Зрение четкое и ясное, как у взрослого. Мир во всех красках!',
+        imageStyle: {
+            filter: 'none',
+        },
     },
 ]
 
@@ -240,7 +218,6 @@ export default function EditorScreen() {
             <View style={styles.topButtonsContainer}>
                 {selectedFilter && selectedFilter.name !== 'Оригинал' && (
                     <Pressable style={styles.iconButton} onPress={saveImage}>
-
                         <MaterialIcons name="save" size={24} color="white" />
                     </Pressable>
                 )}
