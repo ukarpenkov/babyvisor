@@ -1,4 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome'
+import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
 import * as MediaLibrary from 'expo-media-library'
@@ -74,7 +75,7 @@ const FILTERS: FilterConfig[] = [
             background:
                 'linear-gradient(to bottom, rgba(255, 0, 0, 0.3), rgba(255, 255, 0, 0.3))',
             mixBlendMode: 'color-dodge',
-            pointerEvents: 'none', 
+            pointerEvents: 'none',
         },
     },
     {
@@ -239,11 +240,12 @@ export default function EditorScreen() {
             <View style={styles.topButtonsContainer}>
                 {selectedFilter && selectedFilter.name !== 'Оригинал' && (
                     <Pressable style={styles.iconButton} onPress={saveImage}>
-                        <FontAwesome name="save" size={24} color="white" />
+
+                        <MaterialIcons name="save" size={24} color="white" />
                     </Pressable>
                 )}
                 <Pressable style={styles.iconButton} onPress={handleClear}>
-                    <FontAwesome name="trash" size={24} color="white" />
+                    <MaterialIcons name="delete" size={24} color="white" />
                 </Pressable>
             </View>
 
