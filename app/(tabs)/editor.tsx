@@ -159,16 +159,13 @@ export default function EditorScreen() {
             )
             return
         }
-        if (!viewShotRef.current || !imageUri) return
+        if (!viewShotRef.current) return
 
         try {
             const localUri = await viewShotRef.current.capture()
             if (localUri) {
                 await MediaLibrary.saveToLibraryAsync(localUri)
-                Alert.alert(
-                    'Сохранено!',
-                    'Фото с фильтром успешно сохранено в галерею.'
-                )
+                Alert.alert('Сохранено!', 'Фото успешно сохранено в галерею.')
             }
         } catch (e) {
             console.log(e)
@@ -206,6 +203,7 @@ export default function EditorScreen() {
                         selectedFilter?.imageStyle,
                     ]}
                     contentFit="contain"
+                    blurRadius={selectedFilter?.imageStyle?.blurRadius ?? 0}
                 />
                 {selectedFilter?.overlayStyle && (
                     <View
@@ -218,9 +216,11 @@ export default function EditorScreen() {
             </ViewShot>
 
             <View style={styles.topButtonsContainer}>
-                <Pressable style={styles.iconButton} onPress={saveImage}>
-                    <MaterialIcons name="save" size={24} color="white" />
-                </Pressable>
+                {selectedFilter && selectedFilter.name !== 'Оригинал' && (
+                    <Pressable style={styles.iconButton} onPress={saveImage}>
+                        <MaterialIcons name="save" size={24} color="white" />
+                    </Pressable>
+                )}
                 <Pressable style={styles.iconButton} onPress={handleClear}>
                     <MaterialIcons name="delete" size={24} color="white" />
                 </Pressable>
