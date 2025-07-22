@@ -42,7 +42,7 @@ export default function CameraScreen() {
     const takePicture = async (): Promise<void> => {
         if (cameraRef.current) {
             try {
-                setIsCapturing(true) // Устанавливаем состояние захвата
+                setIsCapturing(true) 
                 const photo: CameraCapturedPicture =
                     await cameraRef.current.takePictureAsync({ base64: true })
 
@@ -65,13 +65,13 @@ export default function CameraScreen() {
                         encoding: FileSystem.EncodingType.Base64,
                     })
 
-                    console.log('Photo URI:', photo.uri) // Логируем URI сделанного фото
+                    console.log('Photo URI:', photo.uri) 
                     console.log(
                         'Photo Base64 (first 100 chars):',
                         photo.base64?.slice(0, 100)
-                    ) // Логируем первые 100 символов base64
-                    console.log('New Path:', newPath) // Логируем путь сохраненного фото
-                    console.log('File Info:', fileInfo) // Логируем информацию о файле
+                    ) 
+                    console.log('New Path:', newPath) 
+                    console.log('File Info:', fileInfo) 
 
                     router.push({
                         pathname: './editor',
@@ -87,7 +87,7 @@ export default function CameraScreen() {
                 console.error('Error taking picture:', error)
                 Alert.alert('Ошибка', 'Не удалось сделать фото')
             } finally {
-                setIsCapturing(false) // Сбрасываем состояние захвата
+                setIsCapturing(false)
             }
         }
     }
