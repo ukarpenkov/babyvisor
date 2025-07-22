@@ -26,43 +26,66 @@ interface FilterConfig {
 }
 
 const FILTERS: FilterConfig[] = [
-    { name: 'Оригинал', description: 'Без фильтров.', imageStyle: {} },
+    {
+        name: 'Оригинал',
+        description: 'Полностью цветное и четкое изображение.',
+        imageStyle: {},
+    },
     {
         name: 'Новорожденный',
-        description: 'Размытое, почти черно-белое зрение.',
-        imageStyle: { filter: 'blur(30px) grayscale(1) contrast(1.2)' },
+        description:
+            'Мир в пятнах. Зрение очень размытое, почти без цветов. Фокусировка на расстоянии 20-30 см.',
+        imageStyle: {
+            filter: 'blur(30px) grayscale(1) contrast(1.2)',
+        },
     },
     {
         name: '1 месяц',
-        description: 'Первый цвет — красный.',
+        description:
+            'Начинает видеть яркие предметы. Появляется первый цвет — красный.',
         imageStyle: {
             filter: 'blur(25px) grayscale(0.9) sepia(0.3) hue-rotate(-20deg)',
         },
     },
     {
         name: '2 месяца',
-        description: 'Уже видит красный и зеленый.',
-        imageStyle: { filter: 'blur(15px) grayscale(0.7) contrast(1.1)' },
+        description:
+            'Начинает следить за предметами. Различает красный и зеленый цвета.',
+        imageStyle: {
+            filter: 'blur(15px) grayscale(0.7) contrast(1.1)',
+        },
     },
     {
         name: '3 месяца',
-        description: 'Улучшение объема и цвета.',
-        imageStyle: { filter: 'blur(10px) grayscale(0.5) contrast(1.1)' },
+        description:
+            'Распознает черты лица, появляется объемное зрение. Различает желтый цвет.',
+        imageStyle: {
+            filter: 'blur(10px) grayscale(0.5) contrast(1.1)',
+        },
     },
     {
         name: '4 месяца',
-        description: 'Различает синий цвет.',
-        imageStyle: { filter: 'blur(6px) grayscale(0.3)' },
+        description:
+            'Мир становится еще красочнее! Малыш уже может отличить синий цвет.',
+        imageStyle: {
+            filter: 'blur(6px) grayscale(0.3)',
+        },
     },
     {
         name: '6 месяцев',
-        description: 'Хорошая четкость и детализация.',
-        imageStyle: { filter: 'blur(3px) grayscale(0.1)' },
+        description:
+            'Хорошая четкость. Различает формы, размеры и даже фактуру предметов.',
+        imageStyle: {
+            filter: 'blur(3px) grayscale(0.1)',
+        },
     },
     {
         name: '1 год',
-        description: 'Почти взрослое зрение.',
-        imageStyle: { filter: 'none' },
+        description:
+            'Зрение четкое и ясное, как у взрослого. Мир во всех красках!',
+        imageStyle: {
+            filter: 'none',
+        },
     },
 ]
 
@@ -84,26 +107,16 @@ export default function EditorScreen() {
         MediaLibrary.usePermissions()
 
     useEffect(() => {
-        const prepareImage = async (uri: string, base64?: string) => {
+        const prepareImage = async (uri: string) => {
             setIsLoading(true)
             try {
-                if (base64) {
-                    setBase64Image(`data:image/jpeg;base64,${base64}`)
-                } else {
-                    const fileName = uri.split('/').pop()
-                    const newPath = `${FileSystem.documentDirectory}${fileName}`
-                    await FileSystem.copyAsync({ from: uri, to: newPath })
-                    const fileInfo = await FileSystem.getInfoAsync(newPath)
-                    if (!fileInfo.exists)
-                        throw new Error('Файл не скопировался')
-                    const base64 = await FileSystem.readAsStringAsync(newPath, {
-                        encoding: FileSystem.EncodingType.Base64,
-                    })
-                    setBase64Image(`data:image/jpeg;base64,${base64}`)
-                }
+                const base64 = await FileSystem.readAsStringAsync(uri, {
+                    encoding: FileSystem.EncodingType.Base64,
+                })
+                setBase64Image(`data:image/jpeg;base64,${base64}`)
             } catch (error) {
-                console.error('Ошибка при подготовке изображения:', error)
-                Alert.alert('Ошибка', 'Не удалось обработать изображение.')
+                console.error('Error reading image as base64:', error)
+                Alert.alert('Ошибка', 'Не удалось загрузить изображение')
             } finally {
                 setIsLoading(false)
             }
@@ -111,13 +124,13 @@ export default function EditorScreen() {
 
         if (params.imageUri && params.imageUri !== imageUri) {
             const uri = params.imageUri as string
-            const base64 = params.base64 as string | undefined
             setImageUri(uri)
             setShowConfirmation(true)
             setShowFilters(false)
-            prepareImage(uri, base64)
+            setSelectedFilter(FILTERS[0])
+            prepareImage(uri)
         }
-    }, [params.imageUri, params.base64])
+    }, [params.imageUri])
 
     useEffect(() => {
         if (!mediaLibraryPermission) {
@@ -145,6 +158,7 @@ export default function EditorScreen() {
                 if (asset.base64) {
                     setBase64Image(`data:image/jpeg;base64,${asset.base64}`)
                 } else {
+                    // fallback
                     const base64 = await FileSystem.readAsStringAsync(uri, {
                         encoding: FileSystem.EncodingType.Base64,
                     })
@@ -152,7 +166,7 @@ export default function EditorScreen() {
                 }
             }
         } catch (error) {
-            console.error('Ошибка выбора изображения:', error)
+            console.error('Error picking image:', error)
             Alert.alert('Ошибка', 'Не удалось загрузить изображение')
         } finally {
             setIsLoading(false)
@@ -182,7 +196,10 @@ export default function EditorScreen() {
 
     const saveImage = async (): Promise<void> => {
         if (!mediaLibraryPermission?.granted) {
-            Alert.alert('Нет доступа', 'Разрешите сохранение в галерею.')
+            Alert.alert(
+                'Нет разрешений',
+                'Нужно разрешение для сохранения фото.'
+            )
             return
         }
         if (!viewShotRef.current) return
@@ -192,11 +209,11 @@ export default function EditorScreen() {
             const localUri = await viewShotRef.current.capture()
             if (localUri) {
                 await MediaLibrary.saveToLibraryAsync(localUri)
-                Alert.alert('Сохранено', 'Фото сохранено в галерею.')
+                Alert.alert('Сохранено!', 'Фото успешно сохранено в галерею.')
             }
         } catch (e) {
-            console.error(e)
-            Alert.alert('Ошибка', 'Не удалось сохранить изображение.')
+            console.log(e)
+            Alert.alert('Ошибка', 'Не удалось сохранить фото.')
         } finally {
             setIsLoading(false)
         }
@@ -204,37 +221,45 @@ export default function EditorScreen() {
 
     const getHtmlContent = () => {
         if (!base64Image) return ''
+
         const filterStyle = selectedFilter?.imageStyle?.filter || 'none'
 
         return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-                <style>
-                    body, html {
-                        margin: 0;
-                        padding: 0;
-                        background: black;
-                        width: 100%;
-                        height: 100%;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                    }
-                    img {
-                        max-width: 100%;
-                        max-height: 100%;
-                        object-fit: contain;
-                        filter: ${filterStyle};
-                    }
-                </style>
-            </head>
-            <body>
-                <img src="${base64Image}" />
-            </body>
-            </html>
-        `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <style>
+          body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: black;
+          }
+          .image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+          .filtered-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: ${filterStyle};
+          }
+        </style>
+      </head>
+      <body>
+        <div class="image-container">
+          <img src="${base64Image}" class="filtered-image" />
+        </div>
+      </body>
+      </html>
+    `
     }
 
     if (!imageUri) {
@@ -250,7 +275,7 @@ export default function EditorScreen() {
                     >
                         <FontAwesome name="image" size={24} color="white" />
                         <Text style={styles.galleryButtonText}>
-                            Выбрать фото
+                            Выбрать фото из галереи
                         </Text>
                     </Pressable>
                 )}
@@ -260,39 +285,48 @@ export default function EditorScreen() {
 
     return (
         <View style={styles.container}>
-            {isLoading || !base64Image ? (
-                <View style={styles.imagePlaceholder}>
+            {isLoading && (
+                <View style={styles.loaderContainer}>
                     <ActivityIndicator size="large" color="#ffffff" />
-                    <Text style={styles.placeholderText}>
-                        Подождите, изображение обрабатывается...
-                    </Text>
                 </View>
-            ) : (
-                <ViewShot
-                    ref={viewShotRef}
-                    options={{ format: 'jpg', quality: 0.9 }}
-                    style={styles.imageContainer}
-                >
+            )}
+
+            <ViewShot
+                ref={viewShotRef}
+                options={{ format: 'jpg', quality: 0.9 }}
+                style={styles.imageContainer}
+            >
+                {base64Image ? (
                     <WebView
                         ref={webViewRef}
                         originWhitelist={['*']}
                         source={{ html: getHtmlContent() }}
                         style={styles.webview}
-                        javaScriptEnabled
-                        domStorageEnabled
+                        javaScriptEnabled={true}
+                        domStorageEnabled={true}
                         scrollEnabled={false}
-                        onError={() =>
+                        onLoadStart={() => setIsLoading(true)}
+                        onLoadEnd={() => setIsLoading(false)}
+                        onError={() => {
+                            setIsLoading(false)
                             Alert.alert(
                                 'Ошибка',
-                                'Не удалось отобразить изображение'
+                                'Не удалось загрузить изображение'
                             )
-                        }
+                        }}
                     />
-                </ViewShot>
-            )}
+                ) : (
+                    <View style={styles.imagePlaceholder}>
+                        <ActivityIndicator size="large" color="#ffffff" />
+                        <Text style={styles.placeholderText}>
+                            Загрузка изображения...
+                        </Text>
+                    </View>
+                )}
+            </ViewShot>
 
             <View style={styles.topButtonsContainer}>
-                {selectedFilter.name !== 'Оригинал' && (
+                {selectedFilter && selectedFilter.name !== 'Оригинал' && (
                     <Pressable
                         style={styles.iconButton}
                         onPress={saveImage}
@@ -340,6 +374,7 @@ export default function EditorScreen() {
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.filtersContentContainer}
                     >
                         {FILTERS.map((filter) => (
                             <Pressable
@@ -371,6 +406,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    loaderContainer: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 100,
+    },
     galleryButton: {
         flexDirection: 'row',
         backgroundColor: '#555',
@@ -397,7 +439,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: 'black',
-        width: '100%',
     },
     placeholderText: {
         color: 'white',
@@ -409,6 +450,7 @@ const styles = StyleSheet.create({
         top: 40,
         right: 20,
         flexDirection: 'row',
+        alignItems: 'center',
         gap: 15,
         zIndex: 10,
     },
@@ -424,6 +466,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         width: '100%',
         paddingHorizontal: 20,
+        zIndex: 10,
     },
     choiceButton: {
         paddingVertical: 15,
@@ -439,15 +482,22 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     filtersContainer: {
+        height: 120,
+        width: '100%',
         position: 'absolute',
         bottom: 0,
         backgroundColor: 'rgba(0,0,0,0.7)',
-        paddingVertical: 10,
-        width: '100%',
+        zIndex: 10,
+    },
+    filtersContentContainer: {
+        alignItems: 'center',
+        paddingHorizontal: 10,
     },
     filter: {
-        padding: 15,
+        padding: 20,
         marginHorizontal: 5,
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 8,
     },

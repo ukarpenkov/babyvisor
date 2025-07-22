@@ -6,10 +6,13 @@ import {
     CameraView,
     PermissionResponse,
 } from 'expo-camera'
+import * as FileSystem from 'expo-file-system'
+import * as MediaLibrary from 'expo-media-library'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
     ActivityIndicator,
+    Alert,
     Button,
     Pressable,
     StyleSheet,
@@ -21,6 +24,8 @@ export default function CameraScreen() {
     const [permission, setPermission] = useState<PermissionResponse | null>(
         null
     )
+    const [mediaPermission, requestMediaPermission] =
+        MediaLibrary.usePermissions()
     const [isCapturing, setIsCapturing] = useState(false)
     const isFocused = useIsFocused()
     const cameraRef = useRef<CameraView>(null)
@@ -30,31 +35,60 @@ export default function CameraScreen() {
         ;(async () => {
             const response = await Camera.requestCameraPermissionsAsync()
             setPermission(response)
+            if (!mediaPermission) await requestMediaPermission()
         })()
     }, [])
 
     const takePicture = async (): Promise<void> => {
-        if (!cameraRef.current || isCapturing) return
-        try {
-            setIsCapturing(true)
-            const photo: CameraCapturedPicture =
-                await cameraRef.current.takePictureAsync({
-                    base64: true,
-                    quality: 1,
-                    skipProcessing: false,
+        if (cameraRef.current) {
+            try {
+                setIsCapturing(true) // Устанавливаем состояние захвата
+                const photo: CameraCapturedPicture =
+                    await cameraRef.current.takePictureAsync({ base64: true })
+
+                const fileName = photo.uri.split('/').pop()
+                const newPath = `${FileSystem.cacheDirectory}${fileName}`
+                await FileSystem.copyAsync({
+                    from: photo.uri,
+                    to: newPath,
                 })
 
-            router.push({
-                pathname: './editor',
-                params: {
-                    imageUri: photo.uri,
-                    base64: photo.base64,
-                },
-            })
-        } catch (err) {
-            console.error('Ошибка при съемке:', err)
-        } finally {
-            setIsCapturing(false)
+                const fileInfo = await FileSystem.getInfoAsync(newPath)
+                if (fileInfo.exists) {
+                    const mimeType = newPath.endsWith('.png')
+                        ? 'image/png'
+                        : newPath.endsWith('.jpg') || newPath.endsWith('.jpeg')
+                        ? 'image/jpeg'
+                        : 'image/*'
+
+                    const base64 = await FileSystem.readAsStringAsync(newPath, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    })
+
+                    console.log('Photo URI:', photo.uri) // Логируем URI сделанного фото
+                    console.log(
+                        'Photo Base64 (first 100 chars):',
+                        photo.base64?.slice(0, 100)
+                    ) // Логируем первые 100 символов base64
+                    console.log('New Path:', newPath) // Логируем путь сохраненного фото
+                    console.log('File Info:', fileInfo) // Логируем информацию о файле
+
+                    router.push({
+                        pathname: './editor',
+                        params: {
+                            imageUri: newPath,
+                            base64: `data:${mimeType};base64,${base64}`,
+                        },
+                    })
+                } else {
+                    throw new Error('File does not exist after saving')
+                }
+            } catch (error) {
+                console.error('Error taking picture:', error)
+                Alert.alert('Ошибка', 'Не удалось сделать фото')
+            } finally {
+                setIsCapturing(false) // Сбрасываем состояние захвата
+            }
         }
     }
 
