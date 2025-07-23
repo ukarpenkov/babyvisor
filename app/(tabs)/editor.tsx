@@ -1,6 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
-import * as FileSystem from 'expo-file-system'
 import * as ImagePicker from 'expo-image-picker'
 import * as MediaLibrary from 'expo-media-library'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -90,12 +89,11 @@ const FILTERS: FilterConfig[] = [
 ]
 
 export default function EditorScreen() {
-    const params = useLocalSearchParams()
+    const params = useLocalSearchParams<{ base64?: string }>()
     const router = useRouter()
     const viewShotRef = useRef<ViewShot>(null)
     const webViewRef = useRef<WebView>(null)
 
-    const [imageUri, setImageUri] = useState<string | null>(null)
     const [base64Image, setBase64Image] = useState<string | null>(null)
     const [showConfirmation, setShowConfirmation] = useState<boolean>(false)
     const [showFilters, setShowFilters] = useState<boolean>(false)
@@ -107,36 +105,26 @@ export default function EditorScreen() {
         MediaLibrary.usePermissions()
 
     useEffect(() => {
-        const prepareImage = async (uri: string) => {
-            setIsLoading(true)
-            try {
-                const base64 = await FileSystem.readAsStringAsync(uri, {
-                    encoding: FileSystem.EncodingType.Base64,
-                })
-                setBase64Image(`data:image/jpeg;base64,${base64}`)
-            } catch (error) {
-                console.error('Error reading image as base64:', error)
-                Alert.alert('Ошибка', 'Не удалось загрузить изображение')
-            } finally {
-                setIsLoading(false)
+        if (params.base64 && params.base64.startsWith('data:image')) {
+            if (params.base64 !== base64Image) {
+                setBase64Image(params.base64)
+                setShowConfirmation(true) 
+                setShowFilters(false)
+                setSelectedFilter(FILTERS[0])
             }
         }
-
-        if (params.imageUri && params.imageUri !== imageUri) {
-            const uri = params.imageUri as string
-            setImageUri(uri)
-            setShowConfirmation(true)
+        else if (!params.base64) {
+            setBase64Image(null)
+            setShowConfirmation(false)
             setShowFilters(false)
             setSelectedFilter(FILTERS[0])
-            prepareImage(uri)
         }
-    }, [params.imageUri])
-
+    }, [params.base64]) 
     useEffect(() => {
         if (!mediaLibraryPermission) {
             requestMediaLibraryPermission()
         }
-    }, [])
+    }, [mediaLibraryPermission, requestMediaLibraryPermission])
 
     const pickImageAsync = async (): Promise<void> => {
         setIsLoading(true)
@@ -144,25 +132,27 @@ export default function EditorScreen() {
             const result = await ImagePicker.launchImageLibraryAsync({
                 allowsEditing: true,
                 quality: 1,
-                base64: true,
+                base64: true, 
             })
-
             if (!result.canceled && result.assets?.length > 0) {
                 const asset = result.assets[0]
-                const uri = asset.uri
-                setImageUri(uri)
                 setShowConfirmation(false)
                 setShowFilters(true)
                 setSelectedFilter(FILTERS[0])
 
                 if (asset.base64) {
-                    setBase64Image(`data:image/jpeg;base64,${asset.base64}`)
+                    const mimeType =
+                        asset.mimeType ||
+                        (asset.uri?.endsWith('.png')
+                            ? 'image/png'
+                            : 'image/jpeg') ||
+                        'image/jpeg'
+                    setBase64Image(`data:${mimeType};base64,${asset.base64}`)
                 } else {
-                    // fallback
-                    const base64 = await FileSystem.readAsStringAsync(uri, {
-                        encoding: FileSystem.EncodingType.Base64,
-                    })
-                    setBase64Image(`data:image/jpeg;base64,${base64}`)
+                    console.warn(
+                        'Base64 not provided by ImagePicker, this should not happen.'
+                    )
+                    Alert.alert('Ошибка', 'Не удалось получить изображение')
                 }
             }
         } catch (error) {
@@ -174,18 +164,16 @@ export default function EditorScreen() {
     }
 
     const handleClear = () => {
-        setImageUri(null)
         setBase64Image(null)
         setShowConfirmation(false)
         setShowFilters(false)
         setSelectedFilter(FILTERS[0])
-        router.setParams({ imageUri: undefined })
+        router.setParams({ base64: undefined })
     }
 
     const handleRetake = (): void => {
-        setImageUri(null)
         setBase64Image(null)
-        router.setParams({ imageUri: undefined })
+        router.setParams({ base64: undefined })
         router.push('/camera')
     }
 
@@ -203,7 +191,6 @@ export default function EditorScreen() {
             return
         }
         if (!viewShotRef.current) return
-
         try {
             setIsLoading(true)
             const localUri = await viewShotRef.current.capture()
@@ -212,7 +199,7 @@ export default function EditorScreen() {
                 Alert.alert('Сохранено!', 'Фото успешно сохранено в галерею.')
             }
         } catch (e) {
-            console.log(e)
+            console.error('Save image error:', e)
             Alert.alert('Ошибка', 'Не удалось сохранить фото.')
         } finally {
             setIsLoading(false)
@@ -220,10 +207,9 @@ export default function EditorScreen() {
     }
 
     const getHtmlContent = () => {
-        if (!base64Image) return ''
-
+        if (!base64Image)
+            return '<!DOCTYPE html><html><head></head><body style="background-color:black;"></body></html>'
         const filterStyle = selectedFilter?.imageStyle?.filter || 'none'
-
         return `
       <!DOCTYPE html>
       <html>
@@ -262,7 +248,7 @@ export default function EditorScreen() {
     `
     }
 
-    if (!imageUri) {
+    if (!base64Image) {
         return (
             <View style={styles.container}>
                 {isLoading ? (
@@ -290,41 +276,31 @@ export default function EditorScreen() {
                     <ActivityIndicator size="large" color="#ffffff" />
                 </View>
             )}
-
             <ViewShot
                 ref={viewShotRef}
                 options={{ format: 'jpg', quality: 0.9 }}
                 style={styles.imageContainer}
             >
-                {base64Image ? (
-                    <WebView
-                        ref={webViewRef}
-                        originWhitelist={['*']}
-                        source={{ html: getHtmlContent() }}
-                        style={styles.webview}
-                        javaScriptEnabled={true}
-                        domStorageEnabled={true}
-                        scrollEnabled={false}
-                        onLoadStart={() => setIsLoading(true)}
-                        onLoadEnd={() => setIsLoading(false)}
-                        onError={() => {
-                            setIsLoading(false)
-                            Alert.alert(
-                                'Ошибка',
-                                'Не удалось загрузить изображение'
-                            )
-                        }}
-                    />
-                ) : (
-                    <View style={styles.imagePlaceholder}>
-                        <ActivityIndicator size="large" color="#ffffff" />
-                        <Text style={styles.placeholderText}>
-                            Загрузка изображения...
-                        </Text>
-                    </View>
-                )}
+                <WebView
+                    ref={webViewRef}
+                    originWhitelist={['*']}
+                    source={{ html: getHtmlContent() }}
+                    style={styles.webview}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    scrollEnabled={false}
+                    onError={(syntheticEvent) => {
+                        const { nativeEvent } = syntheticEvent
+                        console.error('WebView error:', nativeEvent)
+                        setIsLoading(false)
+                        Alert.alert(
+                            'Ошибка',
+                            'Не удалось загрузить изображение в WebView'
+                        )
+                    }}
+                    onLoad={() => setIsLoading(false)} 
+                />
             </ViewShot>
-
             <View style={styles.topButtonsContainer}>
                 {selectedFilter && selectedFilter.name !== 'Оригинал' && (
                     <Pressable
@@ -343,7 +319,6 @@ export default function EditorScreen() {
                     <MaterialIcons name="delete" size={24} color="white" />
                 </Pressable>
             </View>
-
             {showConfirmation && (
                 <View style={styles.confirmationContainer}>
                     <Pressable
@@ -368,7 +343,6 @@ export default function EditorScreen() {
                     </Pressable>
                 </View>
             )}
-
             {showFilters && (
                 <View style={styles.filtersContainer}>
                     <ScrollView

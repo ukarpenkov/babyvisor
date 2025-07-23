@@ -6,7 +6,6 @@ import {
     CameraView,
     PermissionResponse,
 } from 'expo-camera'
-import * as FileSystem from 'expo-file-system'
 import * as MediaLibrary from 'expo-media-library'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -42,50 +41,32 @@ export default function CameraScreen() {
     const takePicture = async (): Promise<void> => {
         if (cameraRef.current) {
             try {
-                setIsCapturing(true) 
+                setIsCapturing(true)
                 const photo: CameraCapturedPicture =
                     await cameraRef.current.takePictureAsync({ base64: true })
 
-                const fileName = photo.uri.split('/').pop()
-                const newPath = `${FileSystem.cacheDirectory}${fileName}`
-                await FileSystem.copyAsync({
-                    from: photo.uri,
-                    to: newPath,
-                })
-
-                const fileInfo = await FileSystem.getInfoAsync(newPath)
-                if (fileInfo.exists) {
-                    const mimeType = newPath.endsWith('.png')
-                        ? 'image/png'
-                        : newPath.endsWith('.jpg') || newPath.endsWith('.jpeg')
-                        ? 'image/jpeg'
-                        : 'image/*'
-
-                    const base64 = await FileSystem.readAsStringAsync(newPath, {
-                        encoding: FileSystem.EncodingType.Base64,
-                    })
-
-                    console.log('Photo URI:', photo.uri) 
-                    console.log(
-                        'Photo Base64 (first 100 chars):',
-                        photo.base64?.slice(0, 100)
-                    ) 
-                    console.log('New Path:', newPath) 
-                    console.log('File Info:', fileInfo) 
-
-                    router.push({
-                        pathname: './editor',
-                        params: {
-                            imageUri: newPath,
-                            base64: `data:${mimeType};base64,${base64}`,
-                        },
-                    })
-                } else {
-                    throw new Error('File does not exist after saving')
+                if (!photo.base64) {
+                    throw new Error('Не удалось получить base64 изображения')
                 }
+
+                const mimeType = 'image/jpeg'
+                const base64DataUri = `data:${mimeType};base64,${photo.base64}`
+
+                console.log('Photo URI:', photo.uri)
+                console.log('Photo Base64 length:', photo.base64.length)
+
+                router.push({
+                    pathname: './editor',
+                    params: {
+                        base64: base64DataUri,
+                    },
+                })
             } catch (error) {
                 console.error('Error taking picture:', error)
-                Alert.alert('Ошибка', 'Не удалось сделать фото')
+                Alert.alert(
+                    'Ошибка',
+                    error.message || 'Не удалось сделать фото'
+                )
             } finally {
                 setIsCapturing(false)
             }
