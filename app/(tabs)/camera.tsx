@@ -6,6 +6,7 @@ import {
     CameraView,
     PermissionResponse,
 } from 'expo-camera'
+import * as FileSystem from 'expo-file-system'
 import * as MediaLibrary from 'expo-media-library'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -43,25 +44,47 @@ export default function CameraScreen() {
             try {
                 setIsCapturing(true)
                 const photo: CameraCapturedPicture =
-                    await cameraRef.current.takePictureAsync({ base64: true })
+                    await cameraRef.current.takePictureAsync({ base64: false })
 
-                if (!photo.base64) {
-                    throw new Error('Не удалось получить base64 изображения')
+                const asset = await MediaLibrary.createAssetAsync(photo.uri)
+
+                if (!asset) {
+                    throw new Error('Не удалось сохранить фото в галерею')
                 }
 
-                const mimeType = 'image/jpeg'
-                const base64DataUri = `data:${mimeType};base64,${photo.base64}`
+                setTimeout(async () => {
+                    const galleryPhotos = await MediaLibrary.getAssetsAsync({
+                        first: 1,
+                        mediaType: 'photo',
+                        sortBy: [[MediaLibrary.SortBy.creationTime, false]],
+                    })
 
-                console.log('Photo URI:', photo.uri)
-                console.log('Photo Base64 length:', photo.base64.length)
+                    if (galleryPhotos.assets.length > 0) {
+                        const latestPhoto = galleryPhotos.assets[0]
+                        const base64 = await FileSystem.readAsStringAsync(
+                            latestPhoto.uri,
+                            {
+                                encoding: FileSystem.EncodingType.Base64,
+                            }
+                        )
 
-                router.push({
-                    pathname: './editor',
-                    params: {
-                        base64: base64DataUri,
-                    },
-                })
-            } catch (error) {
+                        const mimeType = 'image/jpeg'
+
+                        router.push({
+                            pathname: './editor',
+                            params: {
+                                base64: `data:${mimeType};base64,${base64}`,
+                                showConfirmation: 'true',
+                            },
+                        })
+                    } else {
+                        Alert.alert(
+                            'Ошибка',
+                            'Не удалось найти последнее фото в галерее'
+                        )
+                    }
+                }, 300) 
+            } catch (error: any) {
                 console.error('Error taking picture:', error)
                 Alert.alert(
                     'Ошибка',

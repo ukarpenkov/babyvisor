@@ -1,5 +1,6 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
+import * as FileSystem from 'expo-file-system'
 import * as ImagePicker from 'expo-image-picker'
 import * as MediaLibrary from 'expo-media-library'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -89,7 +90,12 @@ const FILTERS: FilterConfig[] = [
 ]
 
 export default function EditorScreen() {
-    const params = useLocalSearchParams<{ base64?: string }>()
+    const params = useLocalSearchParams<{
+        base64?: string
+        imageUri?: string
+        showConfirmation?: boolean
+    }>()
+
     const router = useRouter()
     const viewShotRef = useRef<ViewShot>(null)
     const webViewRef = useRef<WebView>(null)
@@ -106,20 +112,59 @@ export default function EditorScreen() {
 
     useEffect(() => {
         if (params.base64 && params.base64.startsWith('data:image')) {
-            if (params.base64 !== base64Image) {
-                setBase64Image(params.base64)
-                setShowConfirmation(true) 
-                setShowFilters(false)
-                setSelectedFilter(FILTERS[0])
+            console.log(
+                'Base64 data received (first 100 chars):',
+                params.base64.slice(0, 100)
+            ) 
+            setBase64Image(params.base64)
+            setShowConfirmation(true)
+            setShowFilters(false)
+            setSelectedFilter(FILTERS[0])
+        } else if (params.imageUri) {
+            console.log('Image URI received:', params.imageUri) 
+            const prepareImage = async () => {
+                setIsLoading(true)
+                try {
+                    const fileName = params.imageUri.split('/').pop()
+                    const newPath = `${FileSystem.documentDirectory}${fileName}`
+
+                    await FileSystem.copyAsync({
+                        from: params.imageUri,
+                        to: newPath,
+                    })
+
+                    const fileInfo = await FileSystem.getInfoAsync(newPath)
+                    if (!fileInfo.exists) {
+                        throw new Error('File does not exist after copying')
+                    }
+
+                    const base64 = await FileSystem.readAsStringAsync(newPath, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    })
+                    console.log(
+                        'Base64 data generated (first 100 chars):',
+                        base64.slice(0, 100)
+                    ) 
+                    setBase64Image(`data:image/jpeg;base64,${base64}`)
+                    setShowConfirmation(true)
+                    setShowFilters(false)
+                    setSelectedFilter(FILTERS[0])
+                } catch (error) {
+                    console.error('Error preparing image:', error)
+                    Alert.alert('Ошибка', 'Не удалось загрузить изображение')
+                } finally {
+                    setIsLoading(false)
+                }
             }
-        }
-        else if (!params.base64) {
+            prepareImage()
+        } else {
+            console.warn('No valid image data received')
             setBase64Image(null)
             setShowConfirmation(false)
             setShowFilters(false)
             setSelectedFilter(FILTERS[0])
         }
-    }, [params.base64]) 
+    }, [params.base64, params.imageUri])
     useEffect(() => {
         if (!mediaLibraryPermission) {
             requestMediaLibraryPermission()
@@ -132,7 +177,7 @@ export default function EditorScreen() {
             const result = await ImagePicker.launchImageLibraryAsync({
                 allowsEditing: true,
                 quality: 1,
-                base64: true, 
+                base64: true,
             })
             if (!result.canceled && result.assets?.length > 0) {
                 const asset = result.assets[0]
@@ -248,6 +293,52 @@ export default function EditorScreen() {
     `
     }
 
+    useEffect(() => {
+        const prepareImage = async (uri: string, base64?: string) => {
+            setIsLoading(true)
+            try {
+                if (base64) {
+                    console.log('Base64 data received:', base64.slice(0, 100)) 
+                    setBase64Image(`data:image/jpeg;base64,${base64}`)
+                } else {
+                    const fileName = uri.split('/').pop()
+                    const newPath = `${FileSystem.documentDirectory}${fileName}`
+
+                    await FileSystem.copyAsync({
+                        from: uri,
+                        to: newPath,
+                    })
+
+                    const fileInfo = await FileSystem.getInfoAsync(newPath)
+                    if (!fileInfo.exists) {
+                        throw new Error('File does not exist after copying')
+                    }
+
+                    const base64 = await FileSystem.readAsStringAsync(newPath, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    })
+                    console.log('Base64 data generated:', base64.slice(0, 100)) 
+                    setBase64Image(`data:image/jpeg;base64,${base64}`)
+                }
+            } catch (error) {
+                console.error('Error preparing image:', error)
+                Alert.alert('Ошибка', 'Не удалось загрузить изображение')
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        if (params.imageUri) {
+            const uri = params.imageUri as string
+            const base64 = params.base64 as string | undefined
+            console.log('Image URI:', uri) 
+            setShowConfirmation(params.showConfirmation || false) 
+            prepareImage(uri, base64)
+        } else {
+            setIsLoading(false) 
+        }
+    }, [params.imageUri, params.base64, params.showConfirmation])
+
     if (!base64Image) {
         return (
             <View style={styles.container}>
@@ -298,7 +389,7 @@ export default function EditorScreen() {
                             'Не удалось загрузить изображение в WebView'
                         )
                     }}
-                    onLoad={() => setIsLoading(false)} 
+                    onLoad={() => setIsLoading(false)}
                 />
             </ViewShot>
             <View style={styles.topButtonsContainer}>
