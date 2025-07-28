@@ -6,7 +6,6 @@ import {
     CameraView,
     PermissionResponse,
 } from 'expo-camera'
-import * as FileSystem from 'expo-file-system'
 import * as MediaLibrary from 'expo-media-library'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -21,86 +20,62 @@ import {
 } from 'react-native'
 
 export default function CameraScreen() {
-    const [permission, setPermission] = useState<PermissionResponse | null>(
-        null
-    )
+    const [cameraPermission, setCameraPermission] =
+        useState<PermissionResponse | null>(null)
     const [mediaPermission, requestMediaPermission] =
         MediaLibrary.usePermissions()
     const [isCapturing, setIsCapturing] = useState(false)
+    const [isNavigating, setIsNavigating] = useState(false)
+
     const isFocused = useIsFocused()
     const cameraRef = useRef<CameraView>(null)
     const router = useRouter()
 
     useEffect(() => {
         ;(async () => {
-            const response = await Camera.requestCameraPermissionsAsync()
-            setPermission(response)
-            if (!mediaPermission) await requestMediaPermission()
+            const camPerm = await Camera.requestCameraPermissionsAsync()
+            setCameraPermission(camPerm)
+            if (!mediaPermission) {
+                await requestMediaPermission()
+            }
         })()
     }, [])
 
     const takePicture = async (): Promise<void> => {
-        if (cameraRef.current) {
-            try {
-                setIsCapturing(true)
-                const photo: CameraCapturedPicture =
-                    await cameraRef.current.takePictureAsync({ base64: false })
+        if (!cameraRef.current) return
 
-                const asset = await MediaLibrary.createAssetAsync(photo.uri)
+        try {
+            setIsCapturing(true)
 
-                if (!asset) {
-                    throw new Error('Не удалось сохранить фото в галерею')
-                }
+            const photo: CameraCapturedPicture =
+                await cameraRef.current.takePictureAsync()
 
-                setTimeout(async () => {
-                    const galleryPhotos = await MediaLibrary.getAssetsAsync({
-                        first: 1,
-                        mediaType: 'photo',
-                        sortBy: [[MediaLibrary.SortBy.creationTime, false]],
-                    })
+            // Сохраняем в галерею
+            const asset = await MediaLibrary.createAssetAsync(photo.uri)
 
-                    if (galleryPhotos.assets.length > 0) {
-                        const latestPhoto = galleryPhotos.assets[0]
-                        const base64 = await FileSystem.readAsStringAsync(
-                            latestPhoto.uri,
-                            {
-                                encoding: FileSystem.EncodingType.Base64,
-                            }
-                        )
+            setIsNavigating(true)
 
-                        const mimeType = 'image/jpeg'
-
-                        router.push({
-                            pathname: './editor',
-                            params: {
-                                base64: `data:${mimeType};base64,${base64}`,
-                                showConfirmation: 'true',
-                            },
-                        })
-                    } else {
-                        Alert.alert(
-                            'Ошибка',
-                            'Не удалось найти последнее фото в галерее'
-                        )
-                    }
-                }, 300) 
-            } catch (error: any) {
-                console.error('Error taking picture:', error)
-                Alert.alert(
-                    'Ошибка',
-                    error.message || 'Не удалось сделать фото'
-                )
-            } finally {
-                setIsCapturing(false)
-            }
+            // Переходим на экран редактора и передаём URI
+            router.push({
+                pathname: '/editor',
+                params: {
+                    imageUri: asset.uri,
+                    showConfirmation: 'true',
+                },
+            })
+        } catch (error: any) {
+            console.error('Ошибка при съёмке фото:', error)
+            Alert.alert('Ошибка', error.message || 'Не удалось сделать фото')
+        } finally {
+            setIsCapturing(false)
         }
     }
 
-    if (!permission) {
+    if (!cameraPermission) {
         return <View style={styles.container} />
     }
 
-    if (!permission.granted) {
+    if (!cameraPermission.granted) {
         return (
             <View style={styles.container}>
                 <Text style={{ textAlign: 'center', marginBottom: 20 }}>
@@ -110,7 +85,7 @@ export default function CameraScreen() {
                     onPress={async () => {
                         const response =
                             await Camera.requestCameraPermissionsAsync()
-                        setPermission(response)
+                        setCameraPermission(response)
                     }}
                     title="Дать разрешение"
                 />
@@ -118,7 +93,7 @@ export default function CameraScreen() {
         )
     }
 
-    if (!isFocused) {
+    if (!isFocused || isNavigating) {
         return <View style={styles.container} />
     }
 
