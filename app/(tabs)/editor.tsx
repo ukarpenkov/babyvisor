@@ -148,7 +148,7 @@ export default function EditorScreen() {
     }
 
     const handleRetake = () => {
-        router.replace('/camera')
+        router.navigate('/camera')
     }
 
     const handleConfirm = () => {

@@ -20,6 +20,8 @@ import {
 } from 'react-native'
 
 export default function CameraScreen() {
+    const [cameraKey, setCameraKey] = useState(0)
+
     const [cameraPermission, setCameraPermission] =
         useState<PermissionResponse | null>(null)
     const [mediaPermission, requestMediaPermission] =
@@ -40,7 +42,11 @@ export default function CameraScreen() {
             }
         })()
     }, [])
-
+    useEffect(() => {
+        if (isFocused) {
+            setCameraKey((prev) => prev + 1)
+        }
+    }, [isFocused])
     const takePicture = async (): Promise<void> => {
         if (!cameraRef.current) return
 
@@ -50,12 +56,9 @@ export default function CameraScreen() {
             const photo: CameraCapturedPicture =
                 await cameraRef.current.takePictureAsync()
 
-            // Сохраняем в галерею
             const asset = await MediaLibrary.createAssetAsync(photo.uri)
 
             setIsNavigating(true)
-
-            // Переходим на экран редактора и передаём URI
             router.push({
                 pathname: '/editor',
                 params: {
@@ -99,7 +102,12 @@ export default function CameraScreen() {
 
     return (
         <View style={styles.container}>
-            <CameraView style={styles.camera} facing="back" ref={cameraRef}>
+            <CameraView
+                style={styles.camera}
+                facing="back"
+                ref={cameraRef}
+                key={cameraKey}
+            >
                 <View style={styles.buttonContainer}>
                     <Pressable
                         style={styles.button}
