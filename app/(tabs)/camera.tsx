@@ -19,9 +19,22 @@ import {
     View,
 } from 'react-native'
 
-export default function CameraScreen() {
-    const [cameraKey, setCameraKey] = useState(0)
+// Обёртка, которая отвечает за сброс компонента при возврате на экран
+export default function CameraScreenWrapper() {
+    const [screenKey, setScreenKey] = useState(0)
+    const isFocused = useIsFocused()
 
+    useEffect(() => {
+        if (isFocused) {
+            setScreenKey((prev) => prev + 1)
+        }
+    }, [isFocused])
+
+    return <CameraScreen key={screenKey} />
+}
+
+// Основной компонент камеры
+function CameraScreen() {
     const [cameraPermission, setCameraPermission] =
         useState<PermissionResponse | null>(null)
     const [mediaPermission, requestMediaPermission] =
@@ -29,7 +42,6 @@ export default function CameraScreen() {
     const [isCapturing, setIsCapturing] = useState(false)
     const [isNavigating, setIsNavigating] = useState(false)
 
-    const isFocused = useIsFocused()
     const cameraRef = useRef<CameraView>(null)
     const router = useRouter()
 
@@ -42,11 +54,7 @@ export default function CameraScreen() {
             }
         })()
     }, [])
-    useEffect(() => {
-        if (isFocused) {
-            setCameraKey((prev) => prev + 1)
-        }
-    }, [isFocused])
+
     const takePicture = async (): Promise<void> => {
         if (!cameraRef.current) return
 
@@ -55,7 +63,6 @@ export default function CameraScreen() {
 
             const photo: CameraCapturedPicture =
                 await cameraRef.current.takePictureAsync()
-
             const asset = await MediaLibrary.createAssetAsync(photo.uri)
 
             setIsNavigating(true)
@@ -96,18 +103,13 @@ export default function CameraScreen() {
         )
     }
 
-    if (!isFocused || isNavigating) {
+    if (isNavigating) {
         return <View style={styles.container} />
     }
 
     return (
         <View style={styles.container}>
-            <CameraView
-                style={styles.camera}
-                facing="back"
-                ref={cameraRef}
-                key={cameraKey}
-            >
+            <CameraView style={styles.camera} facing="back" ref={cameraRef}>
                 <View style={styles.buttonContainer}>
                     <Pressable
                         style={styles.button}
