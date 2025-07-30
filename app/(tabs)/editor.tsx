@@ -281,22 +281,26 @@ export default function EditorScreen() {
             {showConfirmation && (
                 <View style={styles.confirmationContainer}>
                     <Pressable
-                        style={[
-                            styles.choiceButton,
+                        style={({ pressed }) => [
+                            styles.materialButton,
                             { backgroundColor: '#4CAF50' },
+                            pressed && styles.buttonPressed,
                         ]}
                         onPress={handleConfirm}
                     >
-                        <Text style={styles.choiceButtonText}>Ок фото</Text>
+                        <Text style={styles.materialButtonText}>Ок 👍</Text>
                     </Pressable>
                     <Pressable
-                        style={[
-                            styles.choiceButton,
-                            { backgroundColor: '#f44336' },
+                        style={({ pressed }) => [
+                            styles.materialButton,
+                            { backgroundColor: '#E53935' },
+                            pressed && styles.buttonPressed,
                         ]}
                         onPress={handleRetake}
                     >
-                        <Text style={styles.choiceButtonText}>Переснять</Text>
+                        <Text style={styles.materialButtonText}>
+                            Переснять 🔄
+                        </Text>
                     </Pressable>
                 </View>
             )}
@@ -425,5 +429,47 @@ const styles = StyleSheet.create({
     filterText: {
         color: 'white',
         fontSize: 14,
+    },
+    choiceButtonModern: {
+        flex: 1,
+        paddingVertical: 14,
+        marginHorizontal: 10,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    choiceButtonModernText: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: '600',
+        letterSpacing: 0.5,
+    },
+    materialButton: {
+        flex: 1,
+        paddingVertical: 16,
+        marginHorizontal: 10,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+    },
+
+    buttonPressed: {
+        opacity: 0.85,
+    },
+
+    materialButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
     },
 })

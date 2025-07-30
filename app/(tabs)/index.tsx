@@ -1,25 +1,44 @@
 import React, { PropsWithChildren, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import {
+    LayoutAnimation,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    UIManager,
+    View,
+} from 'react-native'
 
 interface CollapsibleSectionProps {
     title: string
 }
 
+if (Platform.OS === 'android') {
+    UIManager.setLayoutAnimationEnabledExperimental &&
+        UIManager.setLayoutAnimationEnabledExperimental(true)
+}
+
 const CollapsibleSection: React.FC<
     PropsWithChildren<CollapsibleSectionProps>
 > = ({ title, children }) => {
-    const [isCollapsed, setIsCollapsed] = useState<boolean>(true)
+    const [isCollapsed, setIsCollapsed] = useState(true)
+
+    const toggle = () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+        setIsCollapsed(!isCollapsed)
+    }
 
     return (
-        <View style={styles.sectionContainer}>
-            <Pressable
-                onPress={() => setIsCollapsed(!isCollapsed)}
-                style={styles.header}
-            >
-                <Text style={styles.headerText}>{title}</Text>
-                <Text style={styles.icon}>{isCollapsed ? '+' : '-'}</Text>
-            </Pressable>
-            {!isCollapsed && <View style={styles.content}>{children}</View>}
+        <View style={styles.wrapper}>
+            <View style={styles.blobBackground} />
+            <View style={styles.sectionContainer}>
+                <Pressable style={styles.header} onPress={toggle}>
+                    <Text style={styles.headerText}>{title}</Text>
+                    <Text style={styles.icon}>{isCollapsed ? '⌵' : '⌃'}</Text>
+                </Pressable>
+                {!isCollapsed && <View style={styles.content}>{children}</View>}
+            </View>
         </View>
     )
 }
@@ -35,10 +54,10 @@ export default function AboutScreen() {
                     может увидеть лишь крупные контрастные объекты, если они
                     находятся совсем близко — как лицо матери при кормлении.
                     Фокус слабый и удерживается лишь на долю секунды. Глаза
-                    &quot;скачут&quot;, а зрение работает только на расстоянии 20–30 см —
-                    как будто у ребенка «туман перед глазами».
-                    {'\n\n'}Глаза могут казаться &quot;косыми&quot; — это норма. Лучше
-                    всего новорожденные реагируют на черно-белые узоры.
+                    &quot;скачут&quot;, а зрение работает только на расстоянии
+                    20–30 см — как будто у ребенка «туман перед глазами».
+                    {'\n\n'}Глаза могут казаться &quot;косыми&quot; — это норма.
+                    Лучше всего новорожденные реагируют на черно-белые узоры.
                 </Text>
             </CollapsibleSection>
 
@@ -74,8 +93,8 @@ export default function AboutScreen() {
                     до нескольких метров. Появляется аккомодация — способность
                     менять фокус.
                     {'\n\n'}Цветовосприятие улучшилось: оттенки становятся
-                    разнообразнее. Координация &quot;глаз-рука&quot; позволяет тянуться к
-                    игрушкам. Начинается развитие восприятия глубины.
+                    разнообразнее. Координация &quot;глаз-рука&quot; позволяет
+                    тянуться к игрушкам. Начинается развитие восприятия глубины.
                 </Text>
             </CollapsibleSection>
 
@@ -86,8 +105,8 @@ export default function AboutScreen() {
                     через всю комнату. Быстро следит за движущимися объектами —
                     даже за мячом или собакой.
                     {'\n\n'}Цветовое зрение почти на уровне взрослого.
-                    Координация &quot;рука-глаз&quot; дает возможность точно хватать
-                    предметы, часто одной рукой.
+                    Координация &quot;рука-глаз&quot; дает возможность точно
+                    хватать предметы, часто одной рукой.
                 </Text>
             </CollapsibleSection>
 
@@ -131,34 +150,75 @@ export default function AboutScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 16, backgroundColor: '#f5f5f5' },
+    container: {
+        flex: 1,
+        backgroundColor: '#25292E',
+        padding: 16,
+    },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
+        fontSize: 26,
+        fontWeight: '700',
+        color: '#FFFFFF',
         textAlign: 'center',
+        marginBottom: 24,
+    },
+    wrapper: {
+        marginBottom: 24,
+        position: 'relative',
+    },
+    blobBackground: {
+        position: 'absolute',
+        top: 6,
+        left: 6,
+        right: -6,
+        bottom: -6,
+        backgroundColor: '#1f1f1f',
+        borderTopLeftRadius: 48,
+        borderBottomRightRadius: 72,
+        borderTopRightRadius: 24,
+        borderBottomLeftRadius: 16,
+        zIndex: -1,
+        transform: [{ rotate: '-2deg' }],
+        opacity: 0.8,
     },
     sectionContainer: {
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        marginBottom: 12,
+        backgroundColor: '#2E333A',
+        borderTopLeftRadius: 40,
+        borderTopRightRadius: 20,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 60,
         overflow: 'hidden',
-        elevation: 2,
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
-        backgroundColor: '#e9e9e9',
+        paddingHorizontal: 20,
+        paddingVertical: 18,
+        backgroundColor: '#3A3F47',
     },
-    headerText: { fontSize: 18, fontWeight: '500' },
-    icon: { fontSize: 22, fontWeight: 'bold' },
+    headerText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#FFFFFF',
+        flex: 1,
+    },
+    icon: {
+        fontSize: 20,
+        color: '#FFFFFF',
+    },
     content: {
-        padding: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#ddd',
-        backgroundColor: '#fff',
+        padding: 18,
+        backgroundColor: '#2E333A',
     },
-    paragraph: { fontSize: 16, lineHeight: 24 },
+    paragraph: {
+        fontSize: 16,
+        lineHeight: 24,
+        color: '#D1D5DB',
+    },
 })
