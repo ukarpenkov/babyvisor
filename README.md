@@ -1,50 +1,27 @@
-# Welcome to your Expo app 👋
+👶 BabyVisor 👀
+Discover the fascinating world of your baby's vision development! 🌈✨
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+🌟 Why BabyVision Explorer?
+As a parent, have you ever wondered how your baby sees the world in their first months and years? 👀💭 BabyVision Explorer is here to help!
 
-## Get started
+This app provides valuable insights into your infant’s visual development, offering:
+✔ Science-backed milestones – Learn how your baby’s vision evolves from blurry shapes to full-color perception.
+✔ Practical tips – Get expert advice on eye care and fun ways to stimulate visual growth.
+✔ Interactive camera – See the world through your baby’s eyes! 🎥👶 With special filters, you can experience their vision at different stages—from newborn blurriness to vibrant toddler sight.
 
-1. Install dependencies
+Whether you're a new parent or a seasoned one, BabyVision Explorer helps you create the best environment for your little one’s visual and cognitive development. 🧠💖
 
-   ```bash
-   npm install
-   ```
+💻 Built With
+This app was developed using modern cross-platform technologies:
 
-2. Start the app
+React Native ⚛️ - For smooth performance on both iOS and Android
 
-   ```bash
-   npx expo start
-   ```
+Expo 🚀 - For faster development and easy updates
 
-In the output, you'll find options to open the app in a
+📲 Download Now!
+Get BabyVision Explorer on the Android app market:
+https://www.rustore.ru/catalog/app/com.yurijs.babyvisor
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+(Link coming soon! Stay tuned!) ⏳
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Made with ❤️ for curious parents and happy babies! 👨‍👩‍👧‍👦💡
