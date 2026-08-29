@@ -1,4 +1,5 @@
-import React, { PropsWithChildren, useState } from 'react'
+import MaterialIcons from '@expo/vector-icons/MaterialIcons'
+import { ComponentProps, PropsWithChildren, useMemo, useState } from 'react'
 import {
     LayoutAnimation,
     Platform,
@@ -9,19 +10,88 @@ import {
     UIManager,
     View,
 } from 'react-native'
-
-interface CollapsibleSectionProps {
-    title: string
-}
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { AppTheme } from '../../constants/theme'
+import { useAppTheme } from '../../hooks/useAppTheme'
 
 if (Platform.OS === 'android') {
     UIManager.setLayoutAnimationEnabledExperimental &&
         UIManager.setLayoutAnimationEnabledExperimental(true)
 }
 
-const CollapsibleSection: React.FC<
-    PropsWithChildren<CollapsibleSectionProps>
-> = ({ title, children }) => {
+type Stage = {
+    title: string
+    subtitle: string
+    icon: ComponentProps<typeof MaterialIcons>['name']
+    body: string
+}
+
+const STAGES: Stage[] = [
+    {
+        title: 'При рождении (0–1 месяц)',
+        subtitle: 'Крупные контрастные объекты рядом',
+        icon: 'visibility',
+        body: 'Мир размыт и состоит из черно-бело-серых пятен. Ребенок может увидеть лишь крупные контрастные объекты, если они находятся совсем близко — как лицо матери при кормлении. Фокус слабый и удерживается лишь на долю секунды. Глаза "скачут", а зрение работает только на расстоянии 20–30 см — как будто у ребенка «туман перед глазами».\n\nГлаза могут казаться "косыми" — это норма. Лучше всего новорожденные реагируют на черно-белые узоры.',
+    },
+    {
+        title: '1 месяц',
+        subtitle: 'Появляются оттенки серого',
+        icon: 'blur-on',
+        body: 'Зрение всё ещё размытое, но появляются оттенки серого. Контрастные формы становятся немного четче. Ребенок дольше фиксирует взгляд на лице или игрушке, особенно на знакомых. Горизонтальное слежение становится плавнее. Цвета вроде ярко-красного и зеленого могут начать различаться, но черно-белое всё ещё интереснее.\n\nКосоглазие всё ещё может проявляться, но становится реже.',
+    },
+    {
+        title: '2 месяца',
+        subtitle: 'Черты лица и первые цвета',
+        icon: 'face',
+        body: 'Ребенок начинает различать черты лица — глаза, рот, брови. Слежение становится увереннее: малыш может следить за игрушкой, движущейся по кругу. Цвета — красный, желтый, зеленый, синий — становятся узнаваемыми и привлекательными.\n\nКоординация глаз улучшается, косоглазие встречается всё реже. Впервые может появиться осознанная улыбка при зрительном контакте.',
+    },
+    {
+        title: '3 месяца',
+        subtitle: 'Фокус и координация рука–глаз',
+        icon: 'pan-tool',
+        body: 'Ребенок с любопытством разглядывает свои руки, одежду, игрушки. Может хорошо фокусироваться на расстояниях от 20 см до нескольких метров. Появляется аккомодация — способность менять фокус.\n\nЦветовосприятие улучшилось: оттенки становятся разнообразнее. Координация "глаз-рука" позволяет тянуться к игрушкам. Начинается развитие восприятия глубины.',
+    },
+    {
+        title: '4 месяца',
+        subtitle: 'Детали через всю комнату',
+        icon: 'palette',
+        body: 'Зрение становится четче, насыщеннее по цвету. Ребенок замечает мелкие детали, может различить человека или предмет через всю комнату. Быстро следит за движущимися объектами — даже за мячом или собакой.\n\nЦветовое зрение почти на уровне взрослого. Координация "рука-глаз" дает возможность точно хватать предметы, часто одной рукой.',
+    },
+    {
+        title: '6 месяцев',
+        subtitle: 'Глубина и постоянство объекта',
+        icon: 'child-care',
+        body: 'Зрение значительно острее — 20/50–20/100. Малыш видит четко, различает формы и цвета. Хорошо развито восприятие глубины: ребенок оценивает расстояние до предметов при ползании.\n\nОтличная координация позволяет ловко хватать и перекладывать предметы. Возникает понятие постоянства объекта — малыш ищет упавшую игрушку, даже если её не видно.',
+    },
+    {
+        title: '1 год',
+        subtitle: 'Почти взрослое зрение',
+        icon: 'sentiment-satisfied',
+        body: 'Почти взрослое зрение: острота до 20/25, хорошее восприятие глубины, тонких цветов и мелких деталей. Малыш легко узнает предметы, людей на расстоянии, "читает" картинки.\n\nРазвивается способность целенаправленно действовать: указать пальцем, строить башню из кубиков, подражать действиям.',
+    },
+]
+
+const TIPS = [
+    'Контрастные игрушки (особенно черно-белые)',
+    'Общение лицом к лицу на расстоянии 20–30 см',
+    'Медленное движение предметов перед глазами',
+    'Первое посещение офтальмолога — в 6–12 месяцев, особенно при рисках (напр., косоглазие после 4 месяцев, отсутствие реакции на свет).',
+]
+
+interface CollapsibleSectionProps {
+    title: string
+    subtitle: string
+    icon: ComponentProps<typeof MaterialIcons>['name']
+}
+
+function CollapsibleSection({
+    title,
+    subtitle,
+    icon,
+    children,
+}: PropsWithChildren<CollapsibleSectionProps>) {
+    const theme = useAppTheme()
+    const styles = useMemo(() => createStyles(theme), [theme])
     const [isCollapsed, setIsCollapsed] = useState(true)
 
     const toggle = () => {
@@ -30,195 +100,246 @@ const CollapsibleSection: React.FC<
     }
 
     return (
-        <View style={styles.wrapper}>
-            <View style={styles.blobBackground} />
-            <View style={styles.sectionContainer}>
-                <Pressable style={styles.header} onPress={toggle}>
+        <View style={styles.card}>
+            <Pressable
+                style={styles.header}
+                onPress={toggle}
+                android_ripple={{ color: theme.colors.ripple }}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: !isCollapsed }}
+            >
+                <View
+                    style={[
+                        styles.iconWrap,
+                        { backgroundColor: theme.colors.primaryContainer },
+                    ]}
+                >
+                    <MaterialIcons
+                        name={icon}
+                        size={20}
+                        color={theme.colors.onPrimaryContainer}
+                    />
+                </View>
+                <View style={styles.headerTextWrap}>
                     <Text style={styles.headerText}>{title}</Text>
-                    <Text style={styles.icon}>{isCollapsed ? '⌵' : '⌃'}</Text>
-                </Pressable>
-                {!isCollapsed && <View style={styles.content}>{children}</View>}
-            </View>
+                    <Text style={styles.headerSubtext}>{subtitle}</Text>
+                </View>
+                <MaterialIcons
+                    name={isCollapsed ? 'expand-more' : 'expand-less'}
+                    size={24}
+                    color={theme.colors.onSurfaceVariant}
+                />
+            </Pressable>
+            {!isCollapsed && (
+                <>
+                    <View style={styles.divider} />
+                    <View style={styles.content}>{children}</View>
+                </>
+            )}
         </View>
     )
 }
 
 export default function AboutScreen() {
+    const theme = useAppTheme()
+    const styles = useMemo(() => createStyles(theme), [theme])
+
     return (
-        <ScrollView style={styles.container}>
-            <Text style={styles.title}>Развитие зрения у младенцев</Text>
-
-            <CollapsibleSection title="При рождении (0–1 месяц)">
-                <Text style={styles.paragraph}>
-                    Мир размыт и состоит из черно-бело-серых пятен. Ребенок
-                    может увидеть лишь крупные контрастные объекты, если они
-                    находятся совсем близко — как лицо матери при кормлении.
-                    Фокус слабый и удерживается лишь на долю секунды. Глаза
-                    &quot;скачут&quot;, а зрение работает только на расстоянии
-                    20–30 см — как будто у ребенка «туман перед глазами».
-                    {'\n\n'}Глаза могут казаться &quot;косыми&quot; — это норма.
-                    Лучше всего новорожденные реагируют на черно-белые узоры.
+        <SafeAreaView style={styles.safe} edges={['top']}>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.contentContainer}
+                showsVerticalScrollIndicator={false}
+            >
+                <Text style={styles.title}>Развитие зрения</Text>
+                <Text style={styles.subtitle}>
+                    Как меняется взгляд малыша в первый год жизни
                 </Text>
-            </CollapsibleSection>
 
-            <CollapsibleSection title="1 месяц">
-                <Text style={styles.paragraph}>
-                    Зрение всё ещё размытое, но появляются оттенки серого.
-                    Контрастные формы становятся немного четче. Ребенок дольше
-                    фиксирует взгляд на лице или игрушке, особенно на знакомых.
-                    Горизонтальное слежение становится плавнее. Цвета вроде
-                    ярко-красного и зеленого могут начать различаться, но
-                    черно-белое всё ещё интереснее.
-                    {'\n\n'}Косоглазие всё ещё может проявляться, но становится
-                    реже.
-                </Text>
-            </CollapsibleSection>
+                <Text style={styles.sectionLabel}>Этапы первого года</Text>
 
-            <CollapsibleSection title="2 месяца">
-                <Text style={styles.paragraph}>
-                    Ребенок начинает различать черты лица — глаза, рот, брови.
-                    Слежение становится увереннее: малыш может следить за
-                    игрушкой, движущейся по кругу. Цвета — красный, желтый,
-                    зеленый, синий — становятся узнаваемыми и привлекательными.
-                    {'\n\n'}Координация глаз улучшается, косоглазие встречается
-                    всё реже. Впервые может появиться осознанная улыбка при
-                    зрительном контакте.
-                </Text>
-            </CollapsibleSection>
+                {STAGES.map((stage) => (
+                    <CollapsibleSection
+                        key={stage.title}
+                        title={stage.title}
+                        subtitle={stage.subtitle}
+                        icon={stage.icon}
+                    >
+                        <Text style={styles.paragraph}>{stage.body}</Text>
+                    </CollapsibleSection>
+                ))}
 
-            <CollapsibleSection title="3 месяца">
-                <Text style={styles.paragraph}>
-                    Ребенок с любопытством разглядывает свои руки, одежду,
-                    игрушки. Может хорошо фокусироваться на расстояниях от 20 см
-                    до нескольких метров. Появляется аккомодация — способность
-                    менять фокус.
-                    {'\n\n'}Цветовосприятие улучшилось: оттенки становятся
-                    разнообразнее. Координация &quot;глаз-рука&quot; позволяет
-                    тянуться к игрушкам. Начинается развитие восприятия глубины.
-                </Text>
-            </CollapsibleSection>
-
-            <CollapsibleSection title="4 месяца">
-                <Text style={styles.paragraph}>
-                    Зрение становится четче, насыщеннее по цвету. Ребенок
-                    замечает мелкие детали, может различить человека или предмет
-                    через всю комнату. Быстро следит за движущимися объектами —
-                    даже за мячом или собакой.
-                    {'\n\n'}Цветовое зрение почти на уровне взрослого.
-                    Координация &quot;рука-глаз&quot; дает возможность точно
-                    хватать предметы, часто одной рукой.
-                </Text>
-            </CollapsibleSection>
-
-            <CollapsibleSection title="6 месяцев">
-                <Text style={styles.paragraph}>
-                    Зрение значительно острее — 20/50–20/100. Малыш видит четко,
-                    различает формы и цвета. Хорошо развито восприятие глубины:
-                    ребенок оценивает расстояние до предметов при ползании.
-                    {'\n\n'}Отличная координация позволяет ловко хватать и
-                    перекладывать предметы. Возникает понятие постоянства
-                    объекта — малыш ищет упавшую игрушку, даже если её не видно.
-                </Text>
-            </CollapsibleSection>
-
-            <CollapsibleSection title="1 год">
-                <Text style={styles.paragraph}>
-                    Почти взрослое зрение: острота до 20/25, хорошее восприятие
-                    глубины, тонких цветов и мелких деталей. Малыш легко узнает
-                    предметы, людей на расстоянии, &quot;читает&quot; картинки.
-                    {'\n\n'}Развивается способность целенаправленно действовать:
-                    указать пальцем, строить башню из кубиков, подражать
-                    действиям.
-                </Text>
-            </CollapsibleSection>
-
-            <CollapsibleSection title="Важно помнить">
-                <Text style={styles.paragraph}>
-                    Индивидуальные различия в развитии — это норма. Для раннего
-                    развития зрения полезны:
-                    {'\n\n'}• Контрастные игрушки (особенно черно-белые){'\n'}•
-                    Общение лицом к лицу на расстоянии 20–30 см{'\n'}• Медленное
-                    движение предметов перед глазами{'\n'}• Первое посещение
-                    офтальмолога — в 6–12 месяцев, особенно при рисках (напр.,
-                    косоглазие после 4 месяцев, отсутствие реакции на свет).
-                    {'\n\n'}Первый год жизни — путь от черно-белой дымки до
-                    объемного, цветного и полного деталей мира!
-                </Text>
-            </CollapsibleSection>
-        </ScrollView>
+                <View style={styles.tipsCard}>
+                    <View style={styles.tipsHeader}>
+                        <View
+                            style={[
+                                styles.iconWrap,
+                                {
+                                    backgroundColor:
+                                        theme.colors.surfaceContainerLowest,
+                                },
+                            ]}
+                        >
+                            <MaterialIcons
+                                name="lightbulb-outline"
+                                size={20}
+                                color={theme.colors.onPrimaryContainer}
+                            />
+                        </View>
+                        <Text style={styles.tipsTitle}>Важно помнить</Text>
+                    </View>
+                    <Text style={styles.tipsLead}>
+                        Индивидуальные различия в развитии — это норма. Для
+                        раннего развития зрения полезны:
+                    </Text>
+                    {TIPS.map((tip) => (
+                        <View key={tip} style={styles.tipRow}>
+                            <MaterialIcons
+                                name="check-circle"
+                                size={18}
+                                color={theme.colors.onPrimaryContainer}
+                            />
+                            <Text style={styles.tipText}>{tip}</Text>
+                        </View>
+                    ))}
+                    <Text style={styles.tipsFooter}>
+                        Первый год жизни — путь от черно-белой дымки до
+                        объемного, цветного и полного деталей мира.
+                    </Text>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     )
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#25292E',
-        padding: 16,
-    },
-    title: {
-        fontSize: 26,
-        fontWeight: '700',
-        color: '#FFFFFF',
-        textAlign: 'center',
-        marginBottom: 24,
-    },
-    wrapper: {
-        marginBottom: 24,
-        position: 'relative',
-    },
-    blobBackground: {
-        position: 'absolute',
-        top: 6,
-        left: 6,
-        right: -6,
-        bottom: -6,
-        backgroundColor: '#1f1f1f',
-        borderTopLeftRadius: 48,
-        borderBottomRightRadius: 72,
-        borderTopRightRadius: 24,
-        borderBottomLeftRadius: 16,
-        zIndex: -1,
-        transform: [{ rotate: '-2deg' }],
-        opacity: 0.8,
-    },
-    sectionContainer: {
-        backgroundColor: '#2E333A',
-        borderTopLeftRadius: 40,
-        borderTopRightRadius: 20,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 60,
-        overflow: 'hidden',
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 18,
-        backgroundColor: '#3A3F47',
-    },
-    headerText: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#FFFFFF',
-        flex: 1,
-    },
-    icon: {
-        fontSize: 20,
-        color: '#FFFFFF',
-    },
-    content: {
-        padding: 18,
-        backgroundColor: '#2E333A',
-    },
-    paragraph: {
-        fontSize: 16,
-        lineHeight: 24,
-        color: '#D1D5DB',
-    },
-})
+function createStyles(theme: AppTheme) {
+    const { colors, radii, space } = theme
+
+    return StyleSheet.create({
+        safe: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        container: {
+            flex: 1,
+        },
+        contentContainer: {
+            paddingHorizontal: space.lg,
+            paddingTop: space.lg,
+            paddingBottom: space.xxl,
+        },
+        title: {
+            fontSize: 28,
+            fontWeight: '400',
+            color: colors.onSurface,
+            marginBottom: space.sm,
+        },
+        subtitle: {
+            fontSize: 16,
+            lineHeight: 24,
+            color: colors.onSurfaceVariant,
+            marginBottom: space.xl,
+        },
+        sectionLabel: {
+            fontSize: 12,
+            fontWeight: '500',
+            letterSpacing: 0.5,
+            textTransform: 'uppercase',
+            color: colors.onSurfaceVariant,
+            marginBottom: space.md,
+        },
+        card: {
+            backgroundColor: theme.dark
+                ? colors.surfaceContainer
+                : colors.surfaceContainerLowest,
+            borderRadius: radii.md,
+            marginBottom: space.sm,
+            overflow: 'hidden',
+        },
+        header: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: space.md,
+            paddingVertical: space.md,
+            gap: space.md,
+        },
+        iconWrap: {
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        headerTextWrap: {
+            flex: 1,
+        },
+        headerText: {
+            fontSize: 16,
+            fontWeight: '500',
+            color: colors.onSurface,
+        },
+        headerSubtext: {
+            fontSize: 13,
+            lineHeight: 18,
+            color: colors.onSurfaceVariant,
+            marginTop: 2,
+        },
+        divider: {
+            height: StyleSheet.hairlineWidth,
+            backgroundColor: colors.outlineVariant,
+            marginLeft: 64,
+        },
+        content: {
+            paddingHorizontal: space.lg,
+            paddingVertical: space.lg,
+        },
+        paragraph: {
+            fontSize: 15,
+            lineHeight: 22,
+            color: colors.onSurfaceVariant,
+        },
+        tipsCard: {
+            backgroundColor: colors.primaryContainer,
+            borderRadius: radii.md,
+            padding: space.lg,
+            marginTop: space.md,
+        },
+        tipsHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: space.md,
+            marginBottom: space.md,
+        },
+        tipsTitle: {
+            fontSize: 16,
+            fontWeight: '500',
+            color: colors.onPrimaryContainer,
+        },
+        tipsLead: {
+            fontSize: 14,
+            lineHeight: 20,
+            color: colors.onPrimaryContainer,
+            marginBottom: space.md,
+            opacity: 0.9,
+        },
+        tipRow: {
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: space.sm,
+            marginBottom: space.md,
+        },
+        tipText: {
+            flex: 1,
+            fontSize: 14,
+            lineHeight: 20,
+            color: colors.onPrimaryContainer,
+        },
+        tipsFooter: {
+            fontSize: 14,
+            lineHeight: 20,
+            color: colors.onPrimaryContainer,
+            marginTop: space.sm,
+            fontWeight: '500',
+        },
+    })
+}

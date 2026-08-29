@@ -1,10 +1,10 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import * as FileSystem from 'expo-file-system'
 import * as ImagePicker from 'expo-image-picker'
 import * as MediaLibrary from 'expo-media-library'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useEffect, useRef, useState } from 'react'
+import { StatusBar } from 'expo-status-bar'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
     ActivityIndicator,
     Alert,
@@ -14,8 +14,13 @@ import {
     Text,
     View,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ViewShot from 'react-native-view-shot'
 import { WebView } from 'react-native-webview'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { MaterialButton } from '../../components/ui/MaterialButton'
+import { AppTheme } from '../../constants/theme'
+import { useAppTheme } from '../../hooks/useAppTheme'
 
 const FILTERS = [
     {
@@ -65,6 +70,9 @@ const FILTERS = [
 export default function EditorScreen() {
     const params = useLocalSearchParams()
     const router = useRouter()
+    const theme = useAppTheme()
+    const insets = useSafeAreaInsets()
+    const styles = useMemo(() => createStyles(theme), [theme])
 
     const viewShotRef = useRef<ViewShot>(null)
     const webViewRef = useRef<WebView>(null)
@@ -219,30 +227,48 @@ export default function EditorScreen() {
     }
 
     if (!base64Image) {
+        if (isLoading) {
+            return (
+                <View style={[styles.centered, { paddingTop: insets.top }]}>
+                    <ActivityIndicator
+                        size="large"
+                        color={theme.colors.primary}
+                    />
+                </View>
+            )
+        }
+
         return (
-            <View style={styles.container}>
-                {isLoading ? (
-                    <ActivityIndicator size="large" color="#fff" />
-                ) : (
-                    <Pressable
-                        style={styles.galleryButton}
+            <View
+                style={[
+                    styles.emptyWrap,
+                    { paddingTop: insets.top },
+                ]}
+            >
+                <EmptyState
+                    icon="image"
+                    title="Выберите фото"
+                    message="Загрузите снимок из галереи, чтобы посмотреть его глазами ребёнка."
+                >
+                    <MaterialButton
+                        title="Открыть галерею"
+                        icon="photo-library"
                         onPress={pickImageAsync}
-                    >
-                        <FontAwesome name="image" size={24} color="white" />
-                        <Text style={styles.galleryButtonText}>
-                            Выбрать фото из галереи
-                        </Text>
-                    </Pressable>
-                )}
+                    />
+                </EmptyState>
             </View>
         )
     }
 
     return (
-        <View style={styles.container}>
+        <View style={styles.viewer}>
+            <StatusBar style="light" />
             {isLoading && (
                 <View style={styles.loaderContainer}>
-                    <ActivityIndicator size="large" color="#fff" />
+                    <ActivityIndicator
+                        size="large"
+                        color={theme.colors.primary}
+                    />
                 </View>
             )}
 
@@ -267,66 +293,105 @@ export default function EditorScreen() {
                 />
             </ViewShot>
 
-            <View style={styles.topButtonsContainer}>
+            <View
+                style={[
+                    styles.topButtonsContainer,
+                    { top: insets.top + 8 },
+                ]}
+            >
                 {selectedFilter.name !== 'Оригинал' && (
-                    <Pressable style={styles.iconButton} onPress={saveImage}>
-                        <MaterialIcons name="save" size={24} color="white" />
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.iconButton,
+                            pressed && styles.iconButtonPressed,
+                        ]}
+                        onPress={saveImage}
+                        android_ripple={{ color: theme.colors.ripple }}
+                        accessibilityLabel="Сохранить"
+                    >
+                        <MaterialIcons
+                            name="save-alt"
+                            size={22}
+                            color={theme.colors.onSurface}
+                        />
                     </Pressable>
                 )}
-                <Pressable style={styles.iconButton} onPress={handleClear}>
-                    <MaterialIcons name="delete" size={24} color="white" />
+                <Pressable
+                    style={({ pressed }) => [
+                        styles.iconButton,
+                        pressed && styles.iconButtonPressed,
+                    ]}
+                    onPress={handleClear}
+                    android_ripple={{ color: theme.colors.ripple }}
+                    accessibilityLabel="Удалить"
+                >
+                    <MaterialIcons
+                        name="delete-outline"
+                        size={22}
+                        color={theme.colors.onSurface}
+                    />
                 </Pressable>
             </View>
 
             {showConfirmation && (
-                <View style={styles.confirmationContainer}>
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.materialButton,
-                            { backgroundColor: '#4CAF50' },
-                            pressed && styles.buttonPressed,
-                        ]}
-                        onPress={handleConfirm}
-                    >
-                        <Text style={styles.materialButtonText}>Ок 👍</Text>
-                    </Pressable>
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.materialButton,
-                            { backgroundColor: '#E53935' },
-                            pressed && styles.buttonPressed,
-                        ]}
-                        onPress={handleRetake}
-                    >
-                        <Text style={styles.materialButtonText}>
-                            Переснять 🔄
-                        </Text>
-                    </Pressable>
+                <View style={[styles.sheet, { paddingBottom: 16 }]}>
+                    <Text style={styles.sheetTitle}>Использовать это фото?</Text>
+                    <View style={styles.sheetActions}>
+                        <MaterialButton
+                            title="Переснять"
+                            variant="outlined"
+                            icon="replay"
+                            onPress={handleRetake}
+                            style={styles.sheetButton}
+                        />
+                        <MaterialButton
+                            title="Далее"
+                            icon="check"
+                            onPress={handleConfirm}
+                            style={styles.sheetButton}
+                        />
+                    </View>
                 </View>
             )}
 
             {showFilters && (
-                <View style={styles.filtersContainer}>
+                <View style={[styles.sheet, { paddingBottom: 12 }]}>
+                    <Text style={styles.sheetTitle}>Этап зрения</Text>
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.filtersContentContainer}
+                        contentContainerStyle={styles.filtersContent}
                     >
-                        {FILTERS.map((filter) => (
-                            <Pressable
-                                key={filter.name}
-                                style={[
-                                    styles.filter,
-                                    selectedFilter.name === filter.name &&
-                                        styles.selectedFilter,
-                                ]}
-                                onPress={() => setSelectedFilter(filter)}
-                            >
-                                <Text style={styles.filterText}>
-                                    {filter.name}
-                                </Text>
-                            </Pressable>
-                        ))}
+                        {FILTERS.map((filter) => {
+                            const selected =
+                                selectedFilter.name === filter.name
+                            return (
+                                <Pressable
+                                    key={filter.name}
+                                    onPress={() => setSelectedFilter(filter)}
+                                    android_ripple={{
+                                        color: theme.colors.ripple,
+                                    }}
+                                    style={[
+                                        styles.chip,
+                                        selected
+                                            ? styles.chipSelected
+                                            : styles.chipIdle,
+                                    ]}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.chipText,
+                                            selected
+                                                ? styles.chipTextSelected
+                                                : styles.chipTextIdle,
+                                        ]}
+                                    >
+                                        {filter.name}
+                                    </Text>
+                                </Pressable>
+                            )
+                        })}
                     </ScrollView>
                 </View>
             )}
@@ -334,142 +399,118 @@ export default function EditorScreen() {
     )
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#25292e',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    loaderContainer: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 100,
-    },
-    galleryButton: {
-        flexDirection: 'row',
-        backgroundColor: '#555',
-        padding: 15,
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    galleryButtonText: {
-        color: '#fff',
-        marginLeft: 10,
-        fontSize: 18,
-    },
-    imageContainer: {
-        flex: 1,
-        width: '100%',
-        backgroundColor: 'black',
-    },
-    webview: {
-        flex: 1,
-        backgroundColor: 'transparent',
-    },
-    topButtonsContainer: {
-        position: 'absolute',
-        top: 40,
-        right: 20,
-        flexDirection: 'row',
-        gap: 15,
-        zIndex: 10,
-    },
-    iconButton: {
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        padding: 12,
-        borderRadius: 50,
-    },
-    confirmationContainer: {
-        position: 'absolute',
-        bottom: 20,
-        flexDirection: 'row',
-        width: '100%',
-        justifyContent: 'space-around',
-        paddingHorizontal: 20,
-    },
-    choiceButton: {
-        flex: 1,
-        padding: 15,
-        marginHorizontal: 10,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    choiceButtonText: {
-        color: 'white',
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    filtersContainer: {
-        height: 120,
-        width: '100%',
-        position: 'absolute',
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-    },
-    filtersContentContainer: {
-        alignItems: 'center',
-        paddingHorizontal: 10,
-    },
-    filter: {
-        padding: 20,
-        marginHorizontal: 5,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 8,
-    },
-    selectedFilter: {
-        backgroundColor: 'rgba(255,255,255,0.3)',
-        borderColor: 'white',
-        borderWidth: 1,
-    },
-    filterText: {
-        color: 'white',
-        fontSize: 14,
-    },
-    choiceButtonModern: {
-        flex: 1,
-        paddingVertical: 14,
-        marginHorizontal: 10,
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
+function createStyles(theme: AppTheme) {
+    const { colors, radii, space } = theme
 
-    choiceButtonModernText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: '600',
-        letterSpacing: 0.5,
-    },
-    materialButton: {
-        flex: 1,
-        paddingVertical: 16,
-        marginHorizontal: 10,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-    },
-
-    buttonPressed: {
-        opacity: 0.85,
-    },
-
-    materialButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-})
+    return StyleSheet.create({
+        centered: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.background,
+        },
+        emptyWrap: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        viewer: {
+            flex: 1,
+            backgroundColor: '#000000',
+        },
+        loaderContainer: {
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: colors.scrim,
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 100,
+        },
+        imageContainer: {
+            flex: 1,
+            width: '100%',
+            backgroundColor: 'black',
+        },
+        webview: {
+            flex: 1,
+            backgroundColor: 'transparent',
+        },
+        topButtonsContainer: {
+            position: 'absolute',
+            right: space.lg,
+            flexDirection: 'row',
+            gap: space.sm,
+            zIndex: 10,
+        },
+        iconButton: {
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: colors.surfaceContainerHigh,
+            alignItems: 'center',
+            justifyContent: 'center',
+            elevation: 2,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.2,
+            shadowRadius: 2,
+        },
+        iconButtonPressed: {
+            opacity: 0.85,
+        },
+        sheet: {
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: colors.surfaceContainer,
+            borderTopLeftRadius: radii.lg,
+            borderTopRightRadius: radii.lg,
+            paddingTop: space.md,
+            paddingHorizontal: space.lg,
+        },
+        sheetTitle: {
+            fontSize: 14,
+            fontWeight: '500',
+            color: colors.onSurfaceVariant,
+            marginBottom: space.md,
+        },
+        sheetActions: {
+            flexDirection: 'row',
+            gap: space.md,
+        },
+        sheetButton: {
+            flex: 1,
+        },
+        filtersContent: {
+            alignItems: 'center',
+            paddingBottom: space.sm,
+            gap: space.sm,
+        },
+        chip: {
+            height: 32,
+            paddingHorizontal: 16,
+            borderRadius: radii.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: 0,
+        },
+        chipIdle: {
+            backgroundColor: 'transparent',
+            borderWidth: 1,
+            borderColor: colors.outline,
+        },
+        chipSelected: {
+            backgroundColor: colors.secondaryContainer,
+            borderWidth: 0,
+        },
+        chipText: {
+            fontSize: 14,
+            fontWeight: '500',
+        },
+        chipTextIdle: {
+            color: colors.onSurfaceVariant,
+        },
+        chipTextSelected: {
+            color: colors.onSecondaryContainer,
+        },
+    })
+}

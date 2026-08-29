@@ -1,4 +1,3 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome'
 import { useIsFocused } from '@react-navigation/native'
 import {
     Camera,
@@ -8,18 +7,18 @@ import {
 } from 'expo-camera'
 import * as MediaLibrary from 'expo-media-library'
 import { useRouter } from 'expo-router'
+import { StatusBar } from 'expo-status-bar'
 import { useEffect, useRef, useState } from 'react'
 import {
     ActivityIndicator,
     Alert,
-    Button,
     Pressable,
     StyleSheet,
-    Text,
     View,
 } from 'react-native'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { MaterialButton } from '../../components/ui/MaterialButton'
 
-// Обёртка, которая отвечает за сброс компонента при возврате на экран
 export default function CameraScreenWrapper() {
     const [screenKey, setScreenKey] = useState(0)
     const isFocused = useIsFocused()
@@ -33,7 +32,6 @@ export default function CameraScreenWrapper() {
     return <CameraScreen key={screenKey} />
 }
 
-// Основной компонент камеры
 function CameraScreen() {
     const [cameraPermission, setCameraPermission] =
         useState<PermissionResponse | null>(null)
@@ -87,19 +85,21 @@ function CameraScreen() {
 
     if (!cameraPermission.granted) {
         return (
-            <View style={styles.container}>
-                <Text style={{ textAlign: 'center', marginBottom: 20 }}>
-                    Приложению нужно разрешение для использования камеры
-                </Text>
-                <Button
+            <EmptyState
+                icon="photo-camera"
+                title="Нужен доступ к камере"
+                message="Чтобы показать мир глазами малыша, приложению нужно разрешение на камеру."
+            >
+                <MaterialButton
+                    title="Разрешить"
+                    icon="check"
                     onPress={async () => {
                         const response =
                             await Camera.requestCameraPermissionsAsync()
                         setCameraPermission(response)
                     }}
-                    title="Дать разрешение"
                 />
-            </View>
+            </EmptyState>
         )
     }
 
@@ -109,22 +109,27 @@ function CameraScreen() {
 
     return (
         <View style={styles.container}>
+            <StatusBar style="light" />
             <CameraView style={styles.camera} facing="back" ref={cameraRef}>
-                <View style={styles.buttonContainer}>
+                <View style={styles.controls}>
                     <Pressable
-                        style={styles.button}
+                        style={({ pressed }) => [
+                            styles.shutterOuter,
+                            (pressed || isCapturing) && styles.shutterPressed,
+                        ]}
                         onPress={takePicture}
                         disabled={isCapturing}
+                        accessibilityRole="button"
+                        accessibilityLabel="Сделать фото"
                     >
-                        {isCapturing ? (
-                            <ActivityIndicator size="large" color="#fff" />
-                        ) : (
-                            <FontAwesome
-                                name="circle-o"
-                                size={64}
-                                color="white"
-                            />
-                        )}
+                        <View style={styles.shutterInner}>
+                            {isCapturing ? (
+                                <ActivityIndicator
+                                    size="small"
+                                    color="#1D6B7A"
+                                />
+                            ) : null}
+                        </View>
                     </Pressable>
                 </View>
             </CameraView>
@@ -141,15 +146,34 @@ const styles = StyleSheet.create({
     camera: {
         flex: 1,
     },
-    buttonContainer: {
-        flex: 1,
-        flexDirection: 'row',
-        backgroundColor: 'transparent',
-        margin: 64,
-    },
-    button: {
-        flex: 1,
-        alignSelf: 'flex-end',
+    controls: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
         alignItems: 'center',
+        paddingTop: 20,
+        paddingBottom: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    },
+    shutterOuter: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 4,
+        borderColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    shutterPressed: {
+        opacity: 0.7,
+    },
+    shutterInner: {
+        width: 62,
+        height: 62,
+        borderRadius: 31,
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 })
