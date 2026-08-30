@@ -57,9 +57,18 @@ if [[ ! -f "$ADI_FILE" ]]; then
 fi
 
 KEYSTORE="${ANDROID_KEYSTORE_PATH:-$ROOT/credentials/babyvisor-upload.jks}"
+if [[ -n "${ANDROID_KEYSTORE_BASE64:-}" ]]; then
+  mkdir -p "$(dirname "$KEYSTORE")"
+  export KEYSTORE
+  python3 -c '
+import base64, os, pathlib
+path = pathlib.Path(os.environ["KEYSTORE"])
+path.write_bytes(base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"]))
+'
+fi
 if [[ ! -f "$KEYSTORE" ]]; then
   echo "Missing upload keystore: $KEYSTORE" >&2
-  echo "Set ANDROID_KEYSTORE_PATH, or place babyvisor-upload.jks under credentials/" >&2
+  echo "Set ANDROID_KEYSTORE_BASE64 in .env, ANDROID_KEYSTORE_PATH, or place babyvisor-upload.jks under credentials/" >&2
   exit 1
 fi
 if [[ -z "${ANDROID_KEYSTORE_PASSWORD:-}" || -z "${ANDROID_KEY_PASSWORD:-}" ]]; then
