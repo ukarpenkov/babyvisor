@@ -19,20 +19,8 @@ import {
 import { EmptyState } from '../../components/ui/EmptyState'
 import { MaterialButton } from '../../components/ui/MaterialButton'
 
-export default function CameraScreenWrapper() {
-    const [screenKey, setScreenKey] = useState(0)
+export default function CameraScreen() {
     const isFocused = useIsFocused()
-
-    useEffect(() => {
-        if (isFocused) {
-            setScreenKey((prev) => prev + 1)
-        }
-    }, [isFocused])
-
-    return <CameraScreen key={screenKey} />
-}
-
-function CameraScreen() {
     const [cameraPermission, setCameraPermission] =
         useState<PermissionResponse | null>(null)
     const [mediaPermission, requestMediaPermission] =
@@ -44,13 +32,19 @@ function CameraScreen() {
     const router = useRouter()
 
     useEffect(() => {
+        let cancelled = false
         ;(async () => {
             const camPerm = await Camera.requestCameraPermissionsAsync()
-            setCameraPermission(camPerm)
+            if (!cancelled) {
+                setCameraPermission(camPerm)
+            }
             if (!mediaPermission) {
                 await requestMediaPermission()
             }
         })()
+        return () => {
+            cancelled = true
+        }
     }, [])
 
     const takePicture = async (): Promise<void> => {
@@ -110,29 +104,47 @@ function CameraScreen() {
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
-            <CameraView style={styles.camera} facing="back" ref={cameraRef}>
-                <View style={styles.controls}>
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.shutterOuter,
-                            (pressed || isCapturing) && styles.shutterPressed,
-                        ]}
-                        onPress={takePicture}
-                        disabled={isCapturing}
-                        accessibilityRole="button"
-                        accessibilityLabel="Сделать фото"
-                    >
-                        <View style={styles.shutterInner}>
-                            {isCapturing ? (
-                                <ActivityIndicator
-                                    size="small"
-                                    color="#1D6B7A"
-                                />
-                            ) : null}
-                        </View>
-                    </Pressable>
-                </View>
-            </CameraView>
+            {isFocused ? (
+                <CameraView
+                    style={StyleSheet.absoluteFill}
+                    facing="back"
+                    mode="picture"
+                    active
+                    ref={cameraRef}
+                    onMountError={(event) => {
+                        const message =
+                            event.message ??
+                            (event as { nativeEvent?: { message?: string } })
+                                .nativeEvent?.message
+                        console.error('Camera mount error:', message)
+                        Alert.alert(
+                            'Камера недоступна',
+                            message || 'Не удалось открыть камеру'
+                        )
+                    }}
+                />
+            ) : null}
+            <View style={styles.controls} pointerEvents="box-none">
+                <Pressable
+                    style={({ pressed }) => [
+                        styles.shutterOuter,
+                        (pressed || isCapturing) && styles.shutterPressed,
+                    ]}
+                    onPress={takePicture}
+                    disabled={isCapturing || !isFocused}
+                    accessibilityRole="button"
+                    accessibilityLabel="Сделать фото"
+                >
+                    <View style={styles.shutterInner}>
+                        {isCapturing ? (
+                            <ActivityIndicator
+                                size="small"
+                                color="#1D6B7A"
+                            />
+                        ) : null}
+                    </View>
+                </Pressable>
+            </View>
         </View>
     )
 }
@@ -141,10 +153,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: 'black',
-        justifyContent: 'center',
-    },
-    camera: {
-        flex: 1,
     },
     controls: {
         position: 'absolute',
