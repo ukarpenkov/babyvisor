@@ -35,6 +35,7 @@ export default (): ExpoConfig => ({
         },
     },
     plugins: [
+        './plugins/with-adi-registration.js',
         'expo-router',
         [
             'expo-camera',

@@ -43,8 +43,31 @@ if ! grep -q '^org.gradle.java.home=' "$GRADLE_PROPS"; then
   } >> "$GRADLE_PROPS"
 fi
 
+ADI_FILE="$ROOT/android/app/src/main/assets/adi-registration.properties"
+if [[ ! -f "$ADI_FILE" ]]; then
+  echo "Missing $ADI_FILE — with-adi-registration plugin did not run" >&2
+  exit 1
+fi
+
+KEYSTORE="${ANDROID_KEYSTORE_PATH:-$ROOT/credentials/babyvisor-upload.jks}"
+if [[ ! -f "$KEYSTORE" ]]; then
+  echo "Missing upload keystore: $KEYSTORE" >&2
+  echo "Set ANDROID_KEYSTORE_PATH, or place babyvisor-upload.jks under credentials/" >&2
+  exit 1
+fi
+if [[ -z "${ANDROID_KEYSTORE_PASSWORD:-}" || -z "${ANDROID_KEY_PASSWORD:-}" ]]; then
+  echo "Set ANDROID_KEYSTORE_PASSWORD and ANDROID_KEY_PASSWORD" >&2
+  exit 1
+fi
+KEY_ALIAS="${ANDROID_KEY_ALIAS:-babyvisor}"
+
 cd android
-./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
+./gradlew assembleRelease \
+  -PreactNativeArchitectures=arm64-v8a \
+  -Pandroid.injected.signing.store.file="$KEYSTORE" \
+  -Pandroid.injected.signing.store.password="$ANDROID_KEYSTORE_PASSWORD" \
+  -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+  -Pandroid.injected.signing.key.password="$ANDROID_KEY_PASSWORD"
 
 APK="$(find app/build/outputs/apk/release -name '*.apk' | head -n 1)"
 if [[ -z "$APK" ]]; then
