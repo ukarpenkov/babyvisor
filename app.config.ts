@@ -18,6 +18,7 @@ export default (): ExpoConfig => ({
     },
     android: {
         package: 'com.yurijs.babyvisor', // Add your unique application ID here
+        versionCode: 2,
         adaptiveIcon: {
             foregroundImage: './assets/images/adaptive-icon.png',
             backgroundColor: '#ffffff',
