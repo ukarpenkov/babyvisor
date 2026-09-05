@@ -27,6 +27,10 @@ export default function CameraScreen() {
         MediaLibrary.usePermissions()
     const [isCapturing, setIsCapturing] = useState(false)
     const [isNavigating, setIsNavigating] = useState(false)
+    const [isReady, setIsReady] = useState(false)
+    const [showCamera, setShowCamera] = useState(false)
+    const [cameraKey, setCameraKey] = useState(0)
+    const mountRetries = useRef(0)
 
     const cameraRef = useRef<CameraView>(null)
     const router = useRouter()
@@ -46,6 +50,29 @@ export default function CameraScreen() {
             cancelled = true
         }
     }, [])
+
+    useEffect(() => {
+        if (!isFocused) {
+            setShowCamera(false)
+            setIsReady(false)
+            mountRetries.current = 0
+            return
+        }
+        const timer = setTimeout(() => {
+            setShowCamera(true)
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [isFocused])
+
+    const retryMount = (): boolean => {
+        if (mountRetries.current < 3) {
+            mountRetries.current += 1
+            setIsReady(false)
+            setCameraKey((prev) => prev + 1)
+            return true
+        }
+        return false
+    }
 
     const takePicture = async (): Promise<void> => {
         if (!cameraRef.current) return
@@ -104,19 +131,26 @@ export default function CameraScreen() {
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
-            {isFocused ? (
+            {isFocused && showCamera ? (
                 <CameraView
+                    key={cameraKey}
                     style={StyleSheet.absoluteFill}
                     facing="back"
                     mode="picture"
-                    active
                     ref={cameraRef}
+                    onCameraReady={() => {
+                        setIsReady(true)
+                        mountRetries.current = 0
+                    }}
                     onMountError={(event) => {
                         const message =
                             event.message ??
                             (event as { nativeEvent?: { message?: string } })
                                 .nativeEvent?.message
                         console.error('Camera mount error:', message)
+                        if (retryMount()) {
+                            return
+                        }
                         Alert.alert(
                             'Камера недоступна',
                             message || 'Не удалось открыть камеру'
@@ -131,7 +165,7 @@ export default function CameraScreen() {
                         (pressed || isCapturing) && styles.shutterPressed,
                     ]}
                     onPress={takePicture}
-                    disabled={isCapturing || !isFocused}
+                    disabled={isCapturing || !isFocused || !isReady}
                     accessibilityRole="button"
                     accessibilityLabel="Сделать фото"
                 >
