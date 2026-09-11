@@ -1,9 +1,6 @@
-import { useIsFocused } from '@react-navigation/native'
 import {
-    Camera,
-    CameraCapturedPicture,
     CameraView,
-    PermissionResponse,
+    useCameraPermissions,
 } from 'expo-camera'
 import * as MediaLibrary from 'expo-media-library'
 import { useRouter } from 'expo-router'
@@ -12,8 +9,6 @@ import { useEffect, useRef, useState } from 'react'
 import {
     ActivityIndicator,
     Alert,
-    AppState,
-    AppStateStatus,
     Linking,
     Pressable,
     StyleSheet,
@@ -23,91 +18,24 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { MaterialButton } from '../../components/ui/MaterialButton'
 
 export default function CameraScreen() {
-    const isFocused = useIsFocused()
-    const [cameraPermission, setCameraPermission] =
-        useState<PermissionResponse | null>(null)
-    const [permissionError, setPermissionError] = useState<string | null>(null)
+    const [permission, requestPermission] = useCameraPermissions()
     const [mediaPermission, requestMediaPermission] =
         MediaLibrary.usePermissions()
     const [isCapturing, setIsCapturing] = useState(false)
-    const [isNavigating, setIsNavigating] = useState(false)
-    const [isReady, setIsReady] = useState(false)
-    const [isAppActive, setIsAppActive] = useState(
-        AppState.currentState === 'active'
-    )
-    const mountRetries = useRef(0)
-
+    const askedOnce = useRef(false)
     const cameraRef = useRef<CameraView>(null)
     const router = useRouter()
 
-    const requestCameraAccess = async (): Promise<void> => {
-        try {
-            setPermissionError(null)
-            const camPerm = await Camera.requestCameraPermissionsAsync()
-            setCameraPermission(camPerm)
-        } catch (error: unknown) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : 'Не удалось запросить разрешение на камеру'
-            setPermissionError(message)
-            setCameraPermission({
-                granted: false,
-                canAskAgain: true,
-                status: 'undetermined',
-                expires: 'never',
-            } as PermissionResponse)
-        }
-    }
-
     useEffect(() => {
-        void requestCameraAccess()
-    }, [])
-
-    useEffect(() => {
-        const onChange = (next: AppStateStatus) => {
-            setIsAppActive(next === 'active')
+        if (!permission || askedOnce.current) return
+        askedOnce.current = true
+        if (!permission.granted) {
+            void requestPermission()
         }
-        const sub = AppState.addEventListener('change', onChange)
-        return () => sub.remove()
-    }, [])
-
-    const syncPreview = () => {
-        if (!cameraPermission?.granted || !cameraRef.current) return
-        if (isFocused && isAppActive) {
-            void cameraRef.current.resumePreview()
-        } else {
-            setIsReady(false)
-            void cameraRef.current.pausePreview()
-        }
-    }
-
-    useEffect(() => {
-        syncPreview()
-    }, [isFocused, isAppActive, cameraPermission?.granted])
-
-    useEffect(() => {
-        if (!isFocused || !isAppActive || !cameraPermission?.granted || isReady) {
-            return
-        }
-        const timer = setTimeout(() => {
-            syncPreview()
-        }, 1500)
-        return () => clearTimeout(timer)
-    }, [isFocused, isAppActive, cameraPermission?.granted, isReady])
-
-    const retryMount = (): boolean => {
-        if (mountRetries.current < 3) {
-            mountRetries.current += 1
-            setIsReady(false)
-            syncPreview()
-            return true
-        }
-        return false
-    }
+    }, [permission, requestPermission])
 
     const takePicture = async (): Promise<void> => {
-        if (!cameraRef.current) return
+        if (!cameraRef.current || isCapturing) return
 
         try {
             setIsCapturing(true)
@@ -123,11 +51,9 @@ export default function CameraScreen() {
                 }
             }
 
-            const photo: CameraCapturedPicture =
-                await cameraRef.current.takePictureAsync()
+            const photo = await cameraRef.current.takePictureAsync()
             const asset = await MediaLibrary.createAssetAsync(photo.uri)
 
-            setIsNavigating(true)
             router.push({
                 pathname: '/editor',
                 params: {
@@ -140,54 +66,44 @@ export default function CameraScreen() {
                 error instanceof Error
                     ? error.message
                     : 'Не удалось сделать фото'
-            console.error('Ошибка при съёмке фото:', error)
             Alert.alert('Ошибка', message)
         } finally {
             setIsCapturing(false)
         }
     }
 
-    if (!cameraPermission && !permissionError) {
+    if (!permission) {
         return (
-            <View style={styles.loading}>
+            <View style={styles.container}>
                 <ActivityIndicator size="large" color="#FFFFFF" />
             </View>
         )
     }
 
-    if (!cameraPermission?.granted) {
-        const blocked = cameraPermission?.canAskAgain === false
+    if (!permission.granted) {
+        const blocked = permission.canAskAgain === false
         return (
             <EmptyState
                 icon="photo-camera"
                 title="Нужен доступ к камере"
                 message={
-                    permissionError ||
-                    (blocked
+                    blocked
                         ? 'Разрешение отклонено. Включите камеру в настройках приложения.'
-                        : 'Чтобы показать мир глазами малыша, приложению нужно разрешение на камеру.')
+                        : 'Чтобы показать мир глазами малыша, приложению нужно разрешение на камеру.'
                 }
             >
                 <MaterialButton
                     title={blocked ? 'Открыть настройки' : 'Разрешить'}
                     icon={blocked ? 'settings' : 'check'}
-                    onPress={async () => {
+                    onPress={() => {
                         if (blocked) {
-                            await Linking.openSettings()
+                            void Linking.openSettings()
                             return
                         }
-                        await requestCameraAccess()
+                        void requestPermission()
                     }}
                 />
             </EmptyState>
-        )
-    }
-
-    if (isNavigating) {
-        return (
-            <View style={styles.loading}>
-                <ActivityIndicator size="large" color="#FFFFFF" />
-            </View>
         )
     }
 
@@ -195,37 +111,20 @@ export default function CameraScreen() {
         <View style={styles.container}>
             <StatusBar style="light" />
             <CameraView
+                ref={cameraRef}
                 style={styles.preview}
                 facing="back"
                 mode="picture"
                 ratio="16:9"
                 animateShutter={false}
                 collapsable={false}
-                ref={cameraRef}
-                onCameraReady={() => {
-                    setIsReady(true)
-                    mountRetries.current = 0
-                }}
                 onMountError={(event) => {
-                    const message =
-                        event.message ??
-                        (event as { nativeEvent?: { message?: string } })
-                            .nativeEvent?.message
-                    console.error('Camera mount error:', message)
-                    if (retryMount()) {
-                        return
-                    }
                     Alert.alert(
                         'Камера недоступна',
-                        message || 'Не удалось открыть камеру'
+                        event.message || 'Не удалось открыть камеру'
                     )
                 }}
             />
-            {!isReady ? (
-                <View style={styles.previewLoading} pointerEvents="none">
-                    <ActivityIndicator size="large" color="#FFFFFF" />
-                </View>
-            ) : null}
             <View style={styles.controls} pointerEvents="box-none">
                 <Pressable
                     style={({ pressed }) => [
@@ -233,7 +132,7 @@ export default function CameraScreen() {
                         (pressed || isCapturing) && styles.shutterPressed,
                     ]}
                     onPress={takePicture}
-                    disabled={isCapturing || !isFocused || !isReady}
+                    disabled={isCapturing}
                     accessibilityRole="button"
                     accessibilityLabel="Сделать фото"
                 >
@@ -255,21 +154,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: 'black',
-    },
-    loading: {
-        flex: 1,
-        backgroundColor: 'black',
         alignItems: 'center',
         justifyContent: 'center',
     },
     preview: {
-        flex: 1,
-    },
-    previewLoading: {
         ...StyleSheet.absoluteFillObject,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.35)',
     },
     controls: {
         position: 'absolute',
