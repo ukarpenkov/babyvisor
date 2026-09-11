@@ -7,7 +7,7 @@ export default (): ExpoConfig => ({
     name: 'babyvisor',
     owner: 'yurijs',
     slug: 'BabyVisor', // Updated slug to match the project
-    version: '2.0.0',
+    version: '2.0.1',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     scheme: 'babyvisor',
@@ -18,7 +18,8 @@ export default (): ExpoConfig => ({
     },
     android: {
         package: 'com.yurijs.babyvisor', // Add your unique application ID here
-        versionCode: 2,
+        versionCode: 3,
+        permissions: ['android.permission.CAMERA'],
         adaptiveIcon: {
             foregroundImage: './assets/images/adaptive-icon.png',
             backgroundColor: '#ffffff',
@@ -41,12 +42,13 @@ export default (): ExpoConfig => ({
         [
             'expo-camera',
             {
-                cameraPermission: 'Allow $(PRODUCT_NAME) to access your camera',
-                microphonePermission:
-                    'Allow $(PRODUCT_NAME) to access your microphone',
-                recordAudioAndroid: true,
+                cameraPermission:
+                    'Allow $(PRODUCT_NAME) to access your camera to show the world through a baby\'s eyes.',
+                microphonePermission: false,
+                recordAudioAndroid: false,
             },
         ],
+        './plugins/with-camera-preview-fix.js',
         [
             'expo-splash-screen',
             {
@@ -54,16 +56,6 @@ export default (): ExpoConfig => ({
                 imageWidth: 200,
                 resizeMode: 'contain',
                 backgroundColor: '#ffffff',
-            },
-        ],
-        [
-            'react-native-vision-camera',
-            {
-                cameraPermissionText:
-                    '$(PRODUCT_NAME) needs access to your Camera.',
-                enableMicrophonePermission: true,
-                microphonePermissionText:
-                    '$(PRODUCT_NAME) needs access to your Microphone.',
             },
         ],
         [

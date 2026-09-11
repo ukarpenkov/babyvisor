@@ -12,6 +12,9 @@ import { useEffect, useRef, useState } from 'react'
 import {
     ActivityIndicator,
     Alert,
+    AppState,
+    AppStateStatus,
+    Linking,
     Pressable,
     StyleSheet,
     View,
@@ -23,52 +26,81 @@ export default function CameraScreen() {
     const isFocused = useIsFocused()
     const [cameraPermission, setCameraPermission] =
         useState<PermissionResponse | null>(null)
+    const [permissionError, setPermissionError] = useState<string | null>(null)
     const [mediaPermission, requestMediaPermission] =
         MediaLibrary.usePermissions()
     const [isCapturing, setIsCapturing] = useState(false)
     const [isNavigating, setIsNavigating] = useState(false)
     const [isReady, setIsReady] = useState(false)
-    const [showCamera, setShowCamera] = useState(false)
-    const [cameraKey, setCameraKey] = useState(0)
+    const [isAppActive, setIsAppActive] = useState(
+        AppState.currentState === 'active'
+    )
     const mountRetries = useRef(0)
 
     const cameraRef = useRef<CameraView>(null)
     const router = useRouter()
 
-    useEffect(() => {
-        let cancelled = false
-        ;(async () => {
+    const requestCameraAccess = async (): Promise<void> => {
+        try {
+            setPermissionError(null)
             const camPerm = await Camera.requestCameraPermissionsAsync()
-            if (!cancelled) {
-                setCameraPermission(camPerm)
-            }
-            if (!mediaPermission) {
-                await requestMediaPermission()
-            }
-        })()
-        return () => {
-            cancelled = true
+            setCameraPermission(camPerm)
+        } catch (error: unknown) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Не удалось запросить разрешение на камеру'
+            setPermissionError(message)
+            setCameraPermission({
+                granted: false,
+                canAskAgain: true,
+                status: 'undetermined',
+                expires: 'never',
+            } as PermissionResponse)
         }
+    }
+
+    useEffect(() => {
+        void requestCameraAccess()
     }, [])
 
     useEffect(() => {
-        if (!isFocused) {
-            setShowCamera(false)
+        const onChange = (next: AppStateStatus) => {
+            setIsAppActive(next === 'active')
+        }
+        const sub = AppState.addEventListener('change', onChange)
+        return () => sub.remove()
+    }, [])
+
+    const syncPreview = () => {
+        if (!cameraPermission?.granted || !cameraRef.current) return
+        if (isFocused && isAppActive) {
+            void cameraRef.current.resumePreview()
+        } else {
             setIsReady(false)
-            mountRetries.current = 0
+            void cameraRef.current.pausePreview()
+        }
+    }
+
+    useEffect(() => {
+        syncPreview()
+    }, [isFocused, isAppActive, cameraPermission?.granted])
+
+    useEffect(() => {
+        if (!isFocused || !isAppActive || !cameraPermission?.granted || isReady) {
             return
         }
         const timer = setTimeout(() => {
-            setShowCamera(true)
-        }, 300)
+            syncPreview()
+        }, 1500)
         return () => clearTimeout(timer)
-    }, [isFocused])
+    }, [isFocused, isAppActive, cameraPermission?.granted, isReady])
 
     const retryMount = (): boolean => {
         if (mountRetries.current < 3) {
             mountRetries.current += 1
             setIsReady(false)
-            setCameraKey((prev) => prev + 1)
+            syncPreview()
             return true
         }
         return false
@@ -79,6 +111,17 @@ export default function CameraScreen() {
 
         try {
             setIsCapturing(true)
+
+            if (!mediaPermission?.granted) {
+                const media = await requestMediaPermission()
+                if (!media?.granted) {
+                    Alert.alert(
+                        'Нет доступа к галерее',
+                        'Разрешите сохранение фото, чтобы открыть снимок в редакторе.'
+                    )
+                    return
+                }
+            }
 
             const photo: CameraCapturedPicture =
                 await cameraRef.current.takePictureAsync()
@@ -92,32 +135,48 @@ export default function CameraScreen() {
                     showConfirmation: 'true',
                 },
             })
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Не удалось сделать фото'
             console.error('Ошибка при съёмке фото:', error)
-            Alert.alert('Ошибка', error.message || 'Не удалось сделать фото')
+            Alert.alert('Ошибка', message)
         } finally {
             setIsCapturing(false)
         }
     }
 
-    if (!cameraPermission) {
-        return <View style={styles.container} />
+    if (!cameraPermission && !permissionError) {
+        return (
+            <View style={styles.loading}>
+                <ActivityIndicator size="large" color="#FFFFFF" />
+            </View>
+        )
     }
 
-    if (!cameraPermission.granted) {
+    if (!cameraPermission?.granted) {
+        const blocked = cameraPermission?.canAskAgain === false
         return (
             <EmptyState
                 icon="photo-camera"
                 title="Нужен доступ к камере"
-                message="Чтобы показать мир глазами малыша, приложению нужно разрешение на камеру."
+                message={
+                    permissionError ||
+                    (blocked
+                        ? 'Разрешение отклонено. Включите камеру в настройках приложения.'
+                        : 'Чтобы показать мир глазами малыша, приложению нужно разрешение на камеру.')
+                }
             >
                 <MaterialButton
-                    title="Разрешить"
-                    icon="check"
+                    title={blocked ? 'Открыть настройки' : 'Разрешить'}
+                    icon={blocked ? 'settings' : 'check'}
                     onPress={async () => {
-                        const response =
-                            await Camera.requestCameraPermissionsAsync()
-                        setCameraPermission(response)
+                        if (blocked) {
+                            await Linking.openSettings()
+                            return
+                        }
+                        await requestCameraAccess()
                     }}
                 />
             </EmptyState>
@@ -125,38 +184,47 @@ export default function CameraScreen() {
     }
 
     if (isNavigating) {
-        return <View style={styles.container} />
+        return (
+            <View style={styles.loading}>
+                <ActivityIndicator size="large" color="#FFFFFF" />
+            </View>
+        )
     }
 
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
-            {isFocused && showCamera ? (
-                <CameraView
-                    key={cameraKey}
-                    style={StyleSheet.absoluteFill}
-                    facing="back"
-                    mode="picture"
-                    ref={cameraRef}
-                    onCameraReady={() => {
-                        setIsReady(true)
-                        mountRetries.current = 0
-                    }}
-                    onMountError={(event) => {
-                        const message =
-                            event.message ??
-                            (event as { nativeEvent?: { message?: string } })
-                                .nativeEvent?.message
-                        console.error('Camera mount error:', message)
-                        if (retryMount()) {
-                            return
-                        }
-                        Alert.alert(
-                            'Камера недоступна',
-                            message || 'Не удалось открыть камеру'
-                        )
-                    }}
-                />
+            <CameraView
+                style={styles.preview}
+                facing="back"
+                mode="picture"
+                ratio="16:9"
+                animateShutter={false}
+                collapsable={false}
+                ref={cameraRef}
+                onCameraReady={() => {
+                    setIsReady(true)
+                    mountRetries.current = 0
+                }}
+                onMountError={(event) => {
+                    const message =
+                        event.message ??
+                        (event as { nativeEvent?: { message?: string } })
+                            .nativeEvent?.message
+                    console.error('Camera mount error:', message)
+                    if (retryMount()) {
+                        return
+                    }
+                    Alert.alert(
+                        'Камера недоступна',
+                        message || 'Не удалось открыть камеру'
+                    )
+                }}
+            />
+            {!isReady ? (
+                <View style={styles.previewLoading} pointerEvents="none">
+                    <ActivityIndicator size="large" color="#FFFFFF" />
+                </View>
             ) : null}
             <View style={styles.controls} pointerEvents="box-none">
                 <Pressable
@@ -187,6 +255,21 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: 'black',
+    },
+    loading: {
+        flex: 1,
+        backgroundColor: 'black',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    preview: {
+        flex: 1,
+    },
+    previewLoading: {
+        ...StyleSheet.absoluteFillObject,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.35)',
     },
     controls: {
         position: 'absolute',

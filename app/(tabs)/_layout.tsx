@@ -81,6 +81,7 @@ export default function TabLayout() {
                 name="camera"
                 options={{
                     title: 'Камера',
+                    freezeOnBlur: false,
                     tabBarIcon: ({ color, focused }) => (
                         <TabIcon
                             name="photo-camera"
