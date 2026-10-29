@@ -108,14 +108,13 @@ export default function CameraScreen() {
     }
 
     return (
-        <View style={styles.container}>
+        <View style={styles.screen}>
             <StatusBar style="light" />
             <CameraView
                 ref={cameraRef}
                 style={styles.preview}
                 facing="back"
                 mode="picture"
-                ratio="16:9"
                 animateShutter={false}
                 collapsable={false}
                 onMountError={(event) => {
@@ -157,8 +156,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    screen: {
+        flex: 1,
+        backgroundColor: 'black',
+    },
     preview: {
-        ...StyleSheet.absoluteFillObject,
+        flex: 1,
+        width: '100%',
     },
     controls: {
         position: 'absolute',
