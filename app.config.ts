@@ -7,7 +7,7 @@ export default (): ExpoConfig => ({
     name: 'babyvisor',
     owner: 'yurijs',
     slug: 'BabyVisor', // Updated slug to match the project
-    version: '2.0.1',
+    version: '2.0.2',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     scheme: 'babyvisor',
@@ -18,7 +18,7 @@ export default (): ExpoConfig => ({
     },
     android: {
         package: 'com.yurijs.babyvisor', // Add your unique application ID here
-        versionCode: 3,
+        versionCode: 4,
         permissions: ['android.permission.CAMERA'],
         adaptiveIcon: {
             foregroundImage: './assets/images/adaptive-icon.png',
